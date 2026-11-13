@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f5f2e9">
+  <meta name="description" content="A National Pokédex wallpaper studio spanning every available Pokémon generation, with adaptive colors, alternate forms, animated sprites, positioning, and high-resolution PNG and GIF exports.">
+  <title>Poképaper · Every region. Your screen.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;450;500;550;600;650;700&family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip" href="#workspace">Skip to creator</a>
+<header class="topbar">
+ <a class="wordmark" href="./" aria-label="Poképaper home">poképaper<span class="wordmark-dot">.</span></a>
+ <nav aria-label="Main navigation"><button class="nav-active" data-testid="button-studio">Wallpaper studio</button><button id="about-button" data-testid="button-about">About the project <span>↗</span></button></nav>
+ <span class="edition"><span class="green-dot"></span> NATIONAL DEX <span class="edition-version">v.02</span></span>
+</header>
+<main>
+ <section class="intro">
+  <div><p class="eyebrow"><span class="tiny-pixel"></span> SMALL PIXELS. BIG PERSONALITY.</p><h1>Every region. Your screen.</h1><p class="subtitle">Find your partner. Across every generation.</p></div>
+  <button class="button surprise" id="randomize" data-testid="button-randomize"><i data-lucide="shuffle"></i> Surprise me <kbd>R</kbd></button>
+ </section>
+ <div class="workspace" id="workspace">
+  <aside class="panel pokemon-panel">
+   <div class="panel-title"><h2><span class="step">01</span> Choose your Pokémon</h2><span class="count" id="total-count">…</span></div>
+   <div class="picker-controls"><label class="search"><i data-lucide="search"></i><input id="search" type="search" placeholder="Search name or number…" aria-label="Search Pokémon" data-testid="input-search"><kbd>/</kbd></label>
+    <div class="filter-line"><span class="collection"><span class="tiny-pokeball"></span> National Pokédex</span><label><span class="sr-only">Filter by type</span><select id="type-filter" data-testid="select-type"><option value="all">All types</option></select></label></div>
+    <label class="generation-filter"><span class="sr-only">Filter by generation</span><select id="generation-filter" data-testid="select-generation"><option value="all">All generations</option></select></label>
+   </div>
+   <div class="pokemon-grid" id="pokemon-grid" role="group" aria-label="National Pokédex Pokémon"><div class="loading-message">Opening your Pokédex…</div></div>
+   <div class="picker-footer"><span id="result-count" data-testid="text-result-count">Loading Pokémon…</span><span>Gotta pick one.</span></div>
+  </aside>
+  <section class="studio-column" aria-label="Wallpaper preview">
+   <div class="preview-heading"><h2><span class="step">02</span> Make a little magic</h2><span class="live"><span class="green-dot"></span> LIVE PREVIEW</span></div>
+   <div class="preview-shell">
+    <div class="canvas-wrap"><canvas id="wallpaper" width="1920" height="1080" tabindex="0" data-testid="canvas-wallpaper" aria-label="Live Pokémon wallpaper preview"></canvas><span class="move-badge" id="move-badge" hidden><i data-lucide="move"></i> MOVE MODE</span><div id="canvas-loading" class="canvas-loading"><span class="tiny-pokeball"></span> Loading your partner…</div></div>
+    <div class="preview-toolbar"><span><span class="toolbar-square"></span><span id="dimensions">1920 × 1080</span> <span class="ratio-tag" id="ratio-tag">16:9</span></span><div><button class="move-button" id="move-mode" aria-pressed="false" aria-controls="position-panel" title="Move your Pokémon" data-testid="button-move"><i data-lucide="move"></i><span>Move</span></button><span class="toolbar-divider"></span><button class="icon-button" id="pause" aria-label="Pause sprite animation" title="Pause animation" data-testid="button-pause"><i data-lucide="pause"></i></button><span class="toolbar-divider"></span><button class="icon-button" id="fullscreen" aria-label="Expand preview" title="Expand preview" data-testid="button-fullscreen"><i data-lucide="expand"></i></button></div></div>
+    <div class="position-panel" id="position-panel" hidden><p>Drag your Pokémon.<span> Arrow keys nudge; Shift moves faster.</span></p><div class="position-fields"><label>X <input id="position-x" type="number" min="0" max="100" step="1" value="50" aria-label="Pokémon horizontal position in percent" data-testid="input-position-x"><span>%</span></label><label>Y <input id="position-y" type="number" min="0" max="100" step="1" value="40" aria-label="Pokémon vertical position in percent" data-testid="input-position-y"><span>%</span></label><button id="reset-position" class="reset-position" data-testid="button-reset-position"><i data-lucide="rotate-ccw"></i> Reset</button></div></div>
+   </div>
+   <section class="sprite-panel" aria-label="Pokémon layers">
+    <div class="sprite-panel-heading"><h3>Your Pokémon <span id="sprite-count" data-testid="text-sprite-count">1 sprite</span></h3><span class="layer-order">BACK → FRONT</span></div>
+    <div class="sprite-actions"><button id="add-pokemon" data-testid="button-add-pokemon" aria-pressed="false" disabled><i data-lucide="plus"></i> Add Pokémon</button><button id="duplicate-pokemon" data-testid="button-duplicate-pokemon" disabled><i data-lucide="copy"></i> Duplicate</button><button id="delete-pokemon" data-testid="button-delete-pokemon" disabled><i data-lucide="trash-2"></i> Delete</button></div>
+    <div id="sprite-list" class="sprite-list" role="group" aria-label="Select a Pokémon sprite"></div>
+    <div class="sprite-panel-footer"><p id="sprite-hint" data-testid="text-sprite-hint" aria-live="polite">The picker edits your selected sprite.</p><button id="undo-delete" data-testid="button-undo-delete" hidden>Undo delete</button></div>
+    <div class="layer-order-actions"><button id="layer-backward" data-testid="button-layer-backward"><i data-lucide="arrow-left"></i> Send backward</button><button id="layer-forward" data-testid="button-layer-forward">Bring forward <i data-lucide="arrow-right"></i></button></div>
+   </section>
+   <div class="pokemon-details">
+    <div class="partner-name"><img id="selected-icon" src="assets/6.png" alt="" width="56" height="56"><div><span class="eyebrow" id="dex-id">NO. 006 · GEN I · KANTO</span><h3 id="pokemon-name" data-testid="text-pokemon-name">Charizard</h3></div><div class="type-badges" id="type-badges"></div></div>
+    <div class="form-row"><label>Form<select id="form-select" data-testid="select-form" aria-label="Pokémon form"><option>Standard</option></select></label><div class="variant-tabs" role="group" aria-label="Color variant"><button id="normal" class="active" aria-pressed="true" data-testid="button-normal">Normal</button><button id="shiny" aria-pressed="false" data-testid="button-shiny"><i data-lucide="sparkles"></i> Shiny</button></div></div>
+    <p class="form-caption" id="form-caption" data-testid="text-form-caption" hidden></p>
+    <div class="view-row"><label>Asset style<select id="style-select" data-testid="select-style"><option value="auto">Auto · best available</option><option value="game">Game renders</option><option value="pixel">Classic pixels</option><option value="art">Official artwork</option></select></label><label>View<select id="view-select" data-testid="select-view"><option value="front">Front</option><option value="back">Back</option></select></label><label id="gender-label">Gender<select id="gender-select" data-testid="select-gender"><option value="default">Default</option><option value="female">Female</option></select></label></div>
+    <label class="game-source-row" id="game-source-row">Game source<select id="game-source" data-testid="select-game-source" aria-label="Game source"><option value="auto">Auto · available game</option></select></label>
+    <p class="asset-credit" id="asset-credit" data-testid="text-asset-credit">Game-model renders via PokéAPI · FallenDeity</p>
+   </div>
+   <div class="tip"><span class="tip-star">✦</span><p>A perfect match, every time.<br><span>Adaptive backgrounds borrow a little color from your Pokémon.</span></p><div class="mini-colors" id="mini-colors"><b></b><b></b><b></b><b></b></div></div>
+  </section>
+  <aside class="panel settings-panel">
+   <div class="panel-title"><h2><span class="step">03</span> Set the scene</h2><i data-lucide="sliders-horizontal"></i></div>
+   <div class="settings-content">
+    <div class="section-label"><h3>Background</h3><span id="background-value">Adaptive</span></div>
+    <div class="background-grid" id="background-grid"></div>
+    <div class="color-row" id="solid-controls" hidden><label for="solid-color">Background color</label><input id="solid-color" type="color" value="#efdcb5" data-testid="input-color"></div>
+    <div class="control-section">
+     <div class="section-label"><h3>The little details</h3><span>Selected sprite</span></div>
+     <label class="toggle-row"><span><i data-lucide="play"></i> Animate sprite</span><input id="animate" type="checkbox" role="switch" checked data-testid="toggle-animation"><span class="switch"></span></label>
+     <label class="toggle-row"><span><i data-lucide="grid-2x2"></i> Pixel texture</span><input id="texture" type="checkbox" role="switch" checked data-testid="toggle-texture"><span class="switch"></span></label>
+     <label class="toggle-row"><span><i data-lucide="circle-dashed"></i> Pokémon shadow</span><input id="shadow" type="checkbox" role="switch" checked data-testid="toggle-shadow"><span class="switch"></span></label>
+     <label class="toggle-row"><span><i data-lucide="tag"></i> Pokédex label</span><input id="show-label" type="checkbox" role="switch" checked data-testid="toggle-label"><span class="switch"></span></label>
+     <div class="scale-heading"><label for="sprite-size">Pokémon size</label><output id="size-value">100%</output></div><input id="sprite-size" type="range" min="45" max="160" value="100" data-testid="range-size" aria-label="Pokémon size"><div class="range-caption"><span>little buddy</span><span>big energy</span></div>
+    </div>
+    <div class="control-section export-section">
+     <div class="section-label"><h3>Made for your screen</h3></div>
+     <div class="device-tabs" role="group" aria-label="Wallpaper format"><button class="active" data-format="desktop" aria-pressed="true" data-testid="button-desktop"><i data-lucide="monitor"></i> Desktop</button><button data-format="phone" aria-pressed="false" data-testid="button-phone"><i data-lucide="smartphone"></i> Phone</button><button data-format="square" aria-pressed="false" data-testid="button-square"><i data-lucide="square"></i> Square</button></div>
+     <label class="resolution-label"><span class="sr-only">Export resolution</span><select id="resolution" data-testid="select-resolution"></select></label>
+     <label class="export-format-label" for="export-format">Export as<select id="export-format" data-testid="select-export-format"><option value="png">PNG image</option><option value="gif">Animated GIF</option></select></label>
+     <div class="gif-quality" id="gif-quality" hidden><span class="quality-heading"><i data-lucide="sparkles"></i> MAX QUALITY</span><p>Full resolution · Every source frame · 256 colors/frame · Dithered gradients</p><p class="gif-motion-note" id="gif-motion-note">One complete animation loop, repeating forever.</p><p class="gif-size-note">Large GIFs can take a while. No resizing or skipped frames.</p></div>
+     <button class="download-button" id="download" data-testid="button-download" disabled><i data-lucide="download"></i><span id="download-label">Download wallpaper</span><span>↘</span></button>
+     <div class="export-progress" id="export-progress" hidden><div><span id="export-progress-label">Preparing frames…</span><output id="export-percent">0%</output></div><progress id="export-meter" max="100" value="0" aria-label="GIF export progress"></progress><button id="cancel-export" data-testid="button-cancel-export">Cancel export</button></div>
+     <p class="export-note" id="export-note" data-testid="status-export" aria-live="polite">PNG format · Full resolution · All yours</p>
+    </div>
+   </div>
+  </aside>
+ </div>
+ <footer><span>Made for the love of Pokémon. <span class="footer-heart">♥</span></span><span><kbd>R</kbd> randomize <span class="footer-separator">/</span> <kbd>SPACE</kbd> pause animation</span><button id="credits-button" data-testid="button-credits">Credits & assets <span>↗</span></button></footer>
+</main>
+<dialog id="about-dialog">
+ <div class="dialog-heading"><h2>A little labor of love.</h2><button class="icon-button" id="close-dialog" aria-label="Close about dialog" data-testid="button-close-dialog"><i data-lucide="x"></i></button></div>
+ <p>Poképaper is an unofficial National Pokédex wallpaper studio. Make something that feels like you, with one partner or a whole Pokémon party.</p>
+ <p><span id="catalog-summary">Opening the full catalog…</span> Catalog built from <a href="https://pokeapi.co/" target="_blank" rel="noopener">PokéAPI</a>, updated <span id="catalog-date">…</span>. Generation refers to the species’ debut; regional variants live under their original species.</p>
+ <h3>The asset Pokédex</h3>
+ <p><strong>Auto:</strong> uses Sword & Shield for forms with an archived render, then another available game-version render, Pokémon HOME, official artwork, or archived pixels. <strong>Game source</strong> lists only sources archived for the exact selected form. Pick a specific game or keep Auto. Changing to a form without that game resets the source to Auto; unavailable images are never replaced with a different form.</p>
+ <p><strong>Sword & Shield:</strong> animated renders by FallenDeity from original game models, distributed through <a href="https://github.com/PokeAPI/sprites/" target="_blank" rel="noopener">PokéAPI’s sprite archive</a>. These are community-produced renders of game assets, not an official Nintendo wallpaper collection. Pokémon introduced after those games do not have Sword & Shield assets.</p>
+ <p><strong>Other games:</strong> archived game-model renders include Scarlet & Violet, Legends: Arceus, Legends: Z-A, Brilliant Diamond & Shining Pearl, Ultra Sun & Ultra Moon, Omega Ruby & Alpha Sapphire, X & Y, and Champions where that exact form has a source. These are archive-supplied images of game models, not a claim of an official Nintendo render collection. The active source is credited below the preview; available animations, shiny colors, views, and gender variants follow the chosen game's assets.</p>
+ <p><strong>Classic pixels:</strong> original animated Generation V game sprites where available. Later-generation and alternate-form pixel sprites may be community-made and are labeled as archived sprites. <strong>Official artwork:</strong> illustrations from the PokéAPI archive. Regional, Mega, Gigantamax and separately archived cosmetic forms are included, such as Arceus types, Vivillon patterns and Alcremie decorations. Forms without an image in a particular source remain unavailable in that source.</p>
+ <p>All Pokémon names, characters, artwork, models, and sprites belong to Nintendo, Game Freak, and The Pokémon Company. This fan project is not affiliated with or endorsed by them. Please use wallpapers for personal enjoyment.</p>
+ <h3>A quick field guide</h3>
+ <p>Combine generation and type filters with name or National Pokédex number search. Surprise me and R pick within your current filters; / focuses search and Space pauses motion. Turn on Move below the preview to drag with mouse or touch; arrow keys nudge while the preview is focused. Turn off Pokémon shadow to remove the added ground shadow.</p>
+ <p><strong>Your Pokémon:</strong> Add Pokémon lets you choose another sprite from the Pokédex. The picker normally replaces only the selected sprite. Duplicate copies its settings; Delete removes it and Undo delete restores it. Select a sprite chip to edit its own form, colors, source, size, animation, shadow and position. Move mode also lets you select and drag sprites on the canvas; the last sprite in the list is drawn on top.</p>
+ <p>PNG saves the entire scene. GIF includes every enabled animated sprite, or a still scene when none are animated. A single animation exports its complete loop. With multiple animations, the export spans the longest source loop and repeats shorter animations within it; different loop lengths may not all line up at the repeat boundary. Max quality retains full resolution and every frame-change event, using 256 colors per output frame and dithering. GIF timing has 10 ms precision. Bigger files take longer; Cancel stops encoding without changing your design. Exports include all sprite positions and shadows, without editor guides.</p>
+ <p>GIF encoding uses <a href="https://github.com/mattdesl/gifenc" target="_blank" rel="noopener">gifenc</a> (MIT license). Adaptive colors blend the palettes sampled from all ready sprites in your scene. Your design and exports stay in this tab and are not uploaded.</p>
+ <p class="dialog-note">Every region. A little more you.</p>
+</dialog>
+<div class="notice" id="notice" role="status" aria-live="polite"></div>
+<script src="vendor/lucide.min.js"></script>
+<script src="app.js" defer></script>
+<script data-pplx-inline-edit>
+(function () {
+  if (window === window.top) return;
+
+  const allowedParentOrigins = ["https://www.perplexity.ai","https://perplexity.ai","https://testing.perplexity.ai","https://staging.perplexity.ai","https://*.preview.i.perplexity.ai","http://perplexity.localhost","http://localhost:1420","http://127.0.0.1:1420","http://localhost:3000","http://127.0.0.1:3000","http://localhost:5173","http://127.0.0.1:5173"];
+  const MAX_FONT_BYTES = 500 * 1024;
+  const MAX_TOTAL_FONT_BYTES = 2 * 1024 * 1024;
+  const DEFAULT_LINE_HEIGHT = 16;
+  let scrollForwarding = false;
+  let scrollRaf = 0;
+  let trustedTopOrigin = null;
+
+  // Allow entries like "https://*.preview.i.perplexity.ai" — the wildcard
+  // matches a single DNS label (no dots), so "https://*.foo" cannot stretch
+  // across multiple labels.
+  function matchesAllowedOrigin(origin) {
+    if (!origin) return false;
+    for (const entry of allowedParentOrigins) {
+      if (!entry.includes("*")) {
+        if (entry === origin) return true;
+        continue;
+      }
+      const pattern = new RegExp(
+        "^" +
+          entry.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[^.]+") +
+          "$",
+      );
+      if (pattern.test(origin)) return true;
+    }
+    return false;
+  }
+
+  // Trust decision: when the sender is same-origin-visible (event.origin is a
+  // real origin like https://www.perplexity.ai) we trust event.origin directly.
+  // When event.origin is "null" (opaque broker srcdoc), we fall back to the
+  // broker's stamped `parentOrigin` to identify the top window. The fallback
+  // is claim-only — we rely on the browser's native `targetOrigin` enforcement
+  // on the response path (see postToTrustedTop) to ensure replies can't be
+  // delivered to anyone but the actual top window of that claimed origin.
+  function getTrustedParentOrigin(event) {
+    const forwardedParentOrigin =
+      typeof event.data.parentOrigin === "string" ? event.data.parentOrigin : null;
+    const parentOrigin = event.origin === "null" ? forwardedParentOrigin : event.origin;
+    return matchesAllowedOrigin(parentOrigin) ? parentOrigin : null;
+  }
+
+  // All responses go to window.top with targetOrigin = the allowlisted origin.
+  // An attacker that iframes us inside their own null-origin broker can claim
+  // any parentOrigin they like, but the browser will drop the reply whenever
+  // the real top's origin doesn't match — so the screenshot never leaves.
+  function postToTrustedTop(message) {
+    if (!trustedTopOrigin) return;
+    try {
+      window.top.postMessage(message, trustedTopOrigin);
+    } catch (_error) {}
+  }
+
+  const PICK_CAPABILITIES = ["pick"];
+  const PICK_CHAIN_LENGTH = 4;
+  const PICK_MAX_TEXT_CHARS = 120;
+  const PICK_MAX_HTML_CHARS = 300;
+
+  function truncate(value, maxChars) {
+    return value.length > maxChars ? value.slice(0, maxChars - 1) + "…" : value;
+  }
+
+  function isPickableElement(element) {
+    return (
+      element instanceof Element &&
+      element !== document.documentElement &&
+      element !== document.body
+    );
+  }
+
+  function resolvePickTarget(x, y) {
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+    const element = document.elementFromPoint(x, y);
+    return isPickableElement(element) ? element.closest("svg") || element : null;
+  }
+
+  function pickLabel(element) {
+    if (element.id) return element.localName + "#" + element.id;
+    return [element.localName].concat(Array.from(element.classList).slice(0, 2)).join(".");
+  }
+
+  // Only attributes that help find the element in source. data-* values and URL
+  // query strings or fragments can carry tokens.
+  const PICK_ATTRIBUTES = new Set([
+    "id",
+    "class",
+    "name",
+    "type",
+    "role",
+    "alt",
+    "aria-label",
+    "href",
+    "src",
+  ]);
+
+  function pickAttributeValue(attribute) {
+    return attribute.name === "href" || attribute.name === "src"
+      ? attribute.value.split(/[?#]/)[0]
+      : attribute.value;
+  }
+
+  function describePickElement(element) {
+    const chain = [];
+    for (
+      let current = element;
+      isPickableElement(current) && chain.length < PICK_CHAIN_LENGTH;
+      current = current.parentElement
+    ) {
+      chain.unshift(current);
+    }
+    const attributes = Array.from(element.attributes)
+      .filter((attribute) => PICK_ATTRIBUTES.has(attribute.name))
+      .map((attribute) => ` ${attribute.name}="${pickAttributeValue(attribute).replace(/"/g, "&quot;")}"`)
+      .join("");
+    const text = (element.innerText || element.textContent || "").replace(/\s+/g, " ").trim();
+    return {
+      chain: chain.map(pickLabel),
+      html: truncate(`<${element.localName}${attributes}>`, PICK_MAX_HTML_CHARS),
+      text: text ? truncate(text, PICK_MAX_TEXT_CHARS) : undefined,
+    };
+  }
+
+  // Hover asks once per frame, and innerText on a large section forces layout,
+  // so only the rect is re-read while the pointer stays on the same element.
+  // Clicks ask for fresh details since the page may have changed the element.
+  let lastPick = null;
+
+  function describePickTarget(element, fresh) {
+    if (fresh || lastPick?.element !== element) {
+      lastPick = { element, details: describePickElement(element) };
+    }
+    const rect = element.getBoundingClientRect();
+    return {
+      rect: { x: rect.left, y: rect.top, width: rect.width, height: rect.height },
+      ...lastPick.details,
+    };
+  }
+
+  function inlineAll(original, clone) {
+    if (original.nodeType !== 1 || clone.nodeType !== 1) return;
+
+    try {
+      const computedStyle = getComputedStyle(original);
+      // cssText on a computed style is the serialized declaration in modern
+      // Chromium/Safari — a single read beats enumerating ~400 longhand
+      // properties. Firefox returns "" here, so we fall back on empty.
+      const serialized = computedStyle.cssText;
+      if (serialized) {
+        clone.style.cssText = serialized;
+      } else {
+        const parts = new Array(computedStyle.length);
+        for (let index = 0; index < computedStyle.length; index += 1) {
+          const property = computedStyle[index];
+          parts[index] = `${property}:${computedStyle.getPropertyValue(property)};`;
+        }
+        clone.style.cssText = parts.join("");
+      }
+    } catch (_error) {}
+
+    const originalChildren = original.children;
+    const clonedChildren = clone.children;
+    for (
+      let index = 0;
+      index < originalChildren.length && index < clonedChildren.length;
+      index += 1
+    ) {
+      inlineAll(originalChildren[index], clonedChildren[index]);
+    }
+  }
+
+  function extractFontUrl(srcValue) {
+    const matches = [
+      ...srcValue.matchAll(
+        /url\(["']?([^"')]+)["']?\)(?:\s*format\(["']?([^"')]+)["']?\))?/gi,
+      ),
+    ];
+    if (matches.length === 0) return null;
+    const woff2 = matches.find((m) => m[2] && m[2].toLowerCase().includes("woff2"));
+    if (woff2) return woff2[1];
+    const woff = matches.find((m) => m[2] && m[2].toLowerCase().includes("woff"));
+    if (woff) return woff[1];
+    return matches[0][1];
+  }
+
+  // Cache resolved font URL -> data URI across captures. Fonts on a page
+  // essentially never change, and a batch run emits multiple captures back to
+  // back — without this we'd refetch + re-base64 every time.
+  const fontDataUriCache = new Map();
+  const SRC_DECLARATION_RE = /src\s*:\s*[^;}]+/i;
+
+  async function fetchAsDataUri(url) {
+    if (fontDataUriCache.has(url)) return fontDataUriCache.get(url);
+    let dataUri = null;
+    try {
+      const response = await fetch(url, { mode: "cors", credentials: "omit" });
+      if (response.ok) {
+        const blob = await response.blob();
+        if (blob.size <= MAX_FONT_BYTES) {
+          dataUri = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () =>
+              resolve(typeof reader.result === "string" ? reader.result : null);
+            reader.onerror = () => resolve(null);
+            reader.readAsDataURL(blob);
+          });
+        }
+      }
+    } catch (_error) {
+      dataUri = null;
+    }
+    fontDataUriCache.set(url, dataUri);
+    return dataUri;
+  }
+
+  function collectFontFaceRuleTexts() {
+    const rules = [];
+    for (const sheet of document.styleSheets) {
+      let cssRules;
+      try {
+        cssRules = sheet.cssRules;
+      } catch (_error) {
+        continue;
+      }
+      if (!cssRules) continue;
+      for (const rule of cssRules) {
+        const cssText = rule.cssText || "";
+        if (cssText.startsWith("@font-face")) rules.push(cssText);
+      }
+    }
+    return rules;
+  }
+
+  async function buildInlinedFontCss() {
+    const ruleTexts = collectFontFaceRuleTexts();
+    if (ruleTexts.length === 0) return null;
+
+    const resolved = ruleTexts.map((cssText) => {
+      if (!SRC_DECLARATION_RE.test(cssText)) return null;
+      const srcMatch = cssText.match(/src\s*:\s*([^;}]+)[;}]/i);
+      if (!srcMatch) return null;
+      const url = extractFontUrl(srcMatch[1]);
+      if (!url) return null;
+      try {
+        return { cssText, url: new URL(url, document.baseURI).href };
+      } catch (_error) {
+        return null;
+      }
+    });
+
+    const dataUris = await Promise.all(
+      resolved.map((entry) => (entry ? fetchAsDataUri(entry.url) : Promise.resolve(null))),
+    );
+
+    const inlined = [];
+    let totalBytes = 0;
+    for (let index = 0; index < resolved.length; index += 1) {
+      const entry = resolved[index];
+      const dataUri = dataUris[index];
+      if (!entry || !dataUri) continue;
+      const approxBytes = dataUri.length * 0.75;
+      if (totalBytes + approxBytes > MAX_TOTAL_FONT_BYTES) break;
+      totalBytes += approxBytes;
+      inlined.push(entry.cssText.replace(SRC_DECLARATION_RE, `src: url("${dataUri}")`));
+    }
+    return inlined.length > 0 ? inlined.join("\n") : null;
+  }
+
+  function stripExternal(clone) {
+    const images = clone.querySelectorAll("img");
+    for (let index = 0; index < images.length; index += 1) {
+      const src = images[index].getAttribute("src");
+      if (src && !src.startsWith("data:")) images[index].removeAttribute("src");
+    }
+
+    const elements = clone.querySelectorAll("*");
+    for (let index = 0; index < elements.length; index += 1) {
+      const style = elements[index].style.cssText;
+      if (style && style.includes("url(")) {
+        elements[index].style.cssText = style.replace(
+          /url\(["']?(?!data:)[^)"']*["']?\)/gi,
+          "none",
+        );
+      }
+    }
+  }
+
+  function emitScroll() {
+    scrollRaf = 0;
+    if (!scrollForwarding) return;
+    postToTrustedTop({
+      type: "INLINE_EDIT_SCROLL",
+      scrollX: window.scrollX,
+      scrollY: window.scrollY,
+      capabilities: PICK_CAPABILITIES,
+    });
+  }
+
+  window.addEventListener(
+    "scroll",
+    function () {
+      if (!scrollForwarding || scrollRaf) return;
+      scrollRaf = requestAnimationFrame(emitScroll);
+    },
+    { passive: true, capture: true },
+  );
+
+  async function handleCaptureRequest(event) {
+    const requestId = event.data.requestId;
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    function postResult(dataUrl) {
+      postToTrustedTop({
+        type: "INLINE_EDIT_SCREENSHOT_RESULT",
+        requestId,
+        dataUrl,
+        scrollX,
+        scrollY,
+      });
+    }
+
+    try {
+      // Wait for any pending web fonts to resolve so both inline metrics and
+      // the @font-face inlining below see the same loaded faces.
+      if (document.fonts && document.fonts.ready) {
+        try {
+          await document.fonts.ready;
+        } catch (_error) {}
+      }
+
+      const clone = document.documentElement.cloneNode(true);
+      inlineAll(document.documentElement, clone);
+
+      const removedNodes = clone.querySelectorAll("script,link[rel=\"stylesheet\"],style");
+      for (let index = 0; index < removedNodes.length; index += 1) {
+        removedNodes[index].remove();
+      }
+
+      stripExternal(clone);
+
+      // Re-embed web fonts as data-URI @font-face rules so the SVG rasterizer
+      // can resolve them — external font URLs aren't fetched during
+      // foreignObject rendering, which would otherwise force a fallback face
+      // and change text metrics.
+      const inlinedFontCss = await buildInlinedFontCss();
+      if (inlinedFontCss) {
+        const styleEl = document.createElement("style");
+        styleEl.textContent = inlinedFontCss;
+        const head = clone.querySelector("head");
+        if (head) head.appendChild(styleEl);
+        else clone.insertBefore(styleEl, clone.firstChild);
+      }
+
+      const html = new XMLSerializer().serializeToString(clone);
+      const svg =
+        `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">` +
+        '<foreignObject width="100%" height="100%">' +
+        `<div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px;overflow:hidden">` +
+        `<div style="position:relative;left:-${scrollX}px;top:-${scrollY}px">` +
+        html +
+        "</div></div></foreignObject></svg>";
+      const svgUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+      const image = new Image();
+      image.onload = function () {
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d").drawImage(image, 0, 0);
+        postResult(canvas.toDataURL("image/png"));
+      };
+      image.onerror = function () {
+        postResult(null);
+      };
+      image.src = svgUrl;
+    } catch (_error) {
+      postResult(null);
+    }
+  }
+
+  window.addEventListener("message", function (event) {
+    if (!event.data) return;
+    // Only accept messages from the direct parent frame. Blocks sibling /
+    // unrelated-window postMessage senders that could otherwise reach us.
+    if (event.source !== window.parent) return;
+
+    const trustedParentOrigin = getTrustedParentOrigin(event);
+    if (!trustedParentOrigin) return;
+    trustedTopOrigin = trustedParentOrigin;
+
+    if (event.data.type === "INLINE_EDIT_PICK") {
+      const element = resolvePickTarget(event.data.x, event.data.y);
+      postToTrustedTop({
+        type: "INLINE_EDIT_PICK_RESULT",
+        seq: event.data.seq,
+        target: element ? describePickTarget(element, event.data.fresh === true) : null,
+      });
+      return;
+    }
+
+    if (event.data.type === "INLINE_EDIT_SCROLL_START") {
+      scrollForwarding = true;
+      emitScroll();
+      return;
+    }
+
+    if (event.data.type === "INLINE_EDIT_SCROLL_STOP") {
+      scrollForwarding = false;
+      if (scrollRaf) cancelAnimationFrame(scrollRaf);
+      scrollRaf = 0;
+      return;
+    }
+
+    if (event.data.type === "INLINE_EDIT_SCROLL_BY") {
+      const { deltaX, deltaY, deltaMode } = event.data;
+      if (!scrollForwarding || !Number.isFinite(deltaX) || !Number.isFinite(deltaY)) return;
+      if (deltaMode !== 0 && deltaMode !== 1 && deltaMode !== 2) return;
+      const lineHeight =
+        parseFloat(getComputedStyle(document.documentElement).lineHeight) || DEFAULT_LINE_HEIGHT;
+      const scaleX = deltaMode === 1 ? lineHeight : deltaMode === 2 ? window.innerWidth : 1;
+      const scaleY = deltaMode === 1 ? lineHeight : deltaMode === 2 ? window.innerHeight : 1;
+      // The selection overlay receives the wheel event instead of this iframe.
+      // Instant scrolling preserves trackpad deltas even on smooth-scroll sites.
+      window.scrollBy({ left: deltaX * scaleX, top: deltaY * scaleY, behavior: "instant" });
+      emitScroll();
+      return;
+    }
+
+    if (event.data.type !== "INLINE_EDIT_CAPTURE_REQUEST") return;
+
+    handleCaptureRequest(event);
+  });
+})();
+
+
+</script></body>
+</html>
