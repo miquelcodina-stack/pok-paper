@@ -56,7 +56,7 @@ function getSource(layer=activeLayer()){
  const f=activeForm(layer);if(!f)return null;const s=layer.settings,key=keyFor(s.shiny,s.view,s.gender).replace('_default_female','_female');
  if(assetStyle(layer)==='pixel'){const set=f.pixel.animated||{};if(set[key])return set[key]}
  const url=assetSet(layer)[key];
- if(resolvedAsset(layer).key==='sword-shield'&&f.id===6&&!s.shiny&&s.view==='front'&&s.gender==='default')return 'assets/test.webp';
+
  return url;
 }
 function searchKey(value){return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/♀/g,'f').replace(/♂/g,'m').replace(/[^a-z0-9]/g,'')}
@@ -68,7 +68,7 @@ function filteredPokemon(){
 }
 function renderPicker(){
  const filtered=filteredPokemon();
- $('pokemon-grid').innerHTML=filtered.length?filtered.map(p=>`<button class="pokemon-card ${p.id===state.pokemon?.id?'selected':''}" data-id="${p.id}" data-testid="pokemon-${p.id}" aria-label="${p.name}, number ${p.id}" aria-pressed="${p.id===state.pokemon?.id}"><span class="dex-number">${String(p.id).padStart(3,'0')}</span><img src="assets/${p.id}.png" alt="" width="57" height="57" loading="lazy"><span class="pokemon-card-name">${p.name}</span></button>`).join(''):`<div class="empty-message">No partners found.<br>Try a name, number, or another type.<button id="clear-search" data-testid="button-clear-search">Reset your Pokédex</button></div>`;
+ $('pokemon-grid').innerHTML=filtered.length?filtered.map(p=>`<button class="pokemon-card ${p.id===state.pokemon?.id?'selected':''}" data-id="${p.id}" data-testid="pokemon-${p.id}" aria-label="${p.name}, number ${p.id}" aria-pressed="${p.id===state.pokemon?.id}"><span class="dex-number">${String(p.id).padStart(3,'0')}</span><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.id}.png" alt="" width="57" height="57" loading="lazy"><span class="pokemon-card-name">${p.name}</span></button>`).join(''):`<div class="empty-message">No partners found.<br>Try a name, number, or another type.<button id="clear-search" data-testid="button-clear-search">Reset your Pokédex</button></div>`;
  $('result-count').textContent=filtered.length+' Pokémon';
  $('pokemon-grid').querySelectorAll('img').forEach(img=>img.onerror=()=>{img.style.opacity='.25';img.removeAttribute('src')});
  $('clear-search')?.addEventListener('click',()=>{$('search').value='';$('type-filter').value='all';$('generation-filter').value='all';renderPicker()});
@@ -79,7 +79,7 @@ function updateDetails(){
  if(!p){animationControls();syncPosition();renderLayers();return}
  $('pokemon-name').textContent=p.name;
  $('dex-id').textContent='NO. '+String(p.id).padStart(3,'0')+' · GEN '+(catalog.generations.find(g=>g.id===p.generation)?.name||p.generation)+' · '+p.region.toUpperCase();
- $('selected-icon').src='assets/'+p.id+'.png';
+ $('selected-icon').src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/'+p.id+'.png';
  $('type-badges').innerHTML=f.types.map(t=>`<span class="type-badge ${t}">${t}</span>`).join('');
  $('form-select').innerHTML=p.forms.map((f,i)=>`<option value="${i}">${f.name}</option>`).join('');
  $('form-select').value=String(state.form);
@@ -139,7 +139,7 @@ function renderLayers(){
  $('sprite-count').textContent=layers.length+' sprite'+(layers.length===1?'':'s');
  $('sprite-list').innerHTML=layers.length?layers.map((layer,index)=>{
   const s=layer.settings,f=activeForm(layer),selected=layer.id===selectedLayerId;
-  return `<button class="sprite-chip" data-layer-id="${layer.id}" data-testid="select-layer-${layer.id}" aria-pressed="${selected}" aria-label="Select sprite ${index+1}: ${s.pokemon.name}, ${f.name}" ${exportJob?'disabled':''}><img src="assets/${s.pokemon.id}.png" alt=""><span>${index+1}. ${s.pokemon.name}<small>${f.name}${s.shiny?' · Shiny':''}</small></span></button>`;
+  return `<button class="sprite-chip" data-layer-id="${layer.id}" data-testid="select-layer-${layer.id}" aria-pressed="${selected}" aria-label="Select sprite ${index+1}: ${s.pokemon.name}, ${f.name}" ${exportJob?'disabled':''}><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${s.pokemon.id}.png" alt=""><span>${index+1}. ${s.pokemon.name}<small>${f.name}${s.shiny?' · Shiny':''}</small></span></button>`;
  }).join(''):'<p class="empty-canvas-note">Your canvas is clear. Choose a Pokémon to start again.</p>';
  $('add-pokemon').textContent=addingPokemon?'Cancel adding':'＋ Add Pokémon';
  $('add-pokemon').setAttribute('aria-pressed',String(addingPokemon));
@@ -675,7 +675,7 @@ async function init(){
  $('catalog-date').textContent=new Date(catalog.updatedAt).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
  const types=[...new Set(pokemon.flatMap(p=>p.types))].sort();
  $('type-filter').innerHTML='<option value="all">All types</option>'+types.map(t=>`<option value="${t}">${t.charAt(0).toUpperCase()+t.slice(1)}</option>`).join('');
- choosePokemon(6);await document.fonts.ready;draw();
+ choosePokemon(6);window.dispatchEvent(new CustomEvent('pokepaper:catalog-ready',{detail:{pokemon,catalog}}));await document.fonts.ready;draw();
  }catch(e){$('pokemon-grid').innerHTML='<div class="empty-message">The Pokédex could not open. Please reload to try again.</div>';$('canvas-loading').textContent='Could not load the collection.'}
 }
 init();
