@@ -41,8 +41,23 @@ function cobblemonAssetSet(layer=activeLayer()){
  if(!record)return{};
  return {front_default:cobblemonAssetBase+record.normal,front_shiny:record.shiny?cobblemonAssetBase+record.shiny:null};
 }
+function showdownAssetSet(layer=activeLayer()){
+ const id=layer?.settings?.pokemon?.id;if(!id)return{};
+ const base='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/';
+ return {
+  front_default:base+id+'.gif',
+  front_shiny:base+'shiny/'+id+'.gif',
+  back_default:base+'back/'+id+'.gif',
+  back_shiny:base+'back/shiny/'+id+'.gif',
+  front_female:base+'female/'+id+'.gif',
+  front_shiny_female:base+'shiny/female/'+id+'.gif',
+  back_female:base+'back/female/'+id+'.gif',
+  back_shiny_female:base+'back/shiny/female/'+id+'.gif'
+ };
+}
 function assetCandidates(layer=activeLayer()){
  const f=activeForm(layer);if(!f)return[];const s=layer.settings;
+ if(s.style==='showdown'){const set=showdownAssetSet(layer);return set.front_default?[{style:'showdown',key:'showdown',name:'Pokémon Showdown animated sprites',set}]:[];}
  if(s.style==='cobblemon'){const set=cobblemonAssetSet(layer);return set.front_default?[{style:'cobblemon',key:'cobblemon',name:'Cobblemon model sprites',set}]:[];}
  const games=availableGames(layer).filter(game=>s.game==='auto'||s.game===game.id).map(game=>({style:'game',key:game.id,name:game.name,set:f.games[game.id]}));
  const art={style:'art',key:'art',set:f.art||{}};
@@ -128,9 +143,9 @@ function updateAvailability(){
  const pixelAnimated=style==='pixel'&&!!activeForm().pixel.animated?.[keyFor().replace('_default_female','_female')];
  const source=resolvedAsset();
  const gameCredit=source.key==='sword-shield'?'Sword & Shield · game-model renders by FallenDeity / PokéAPI':source.key==='home'?'Pokémon HOME · archived render / PokéAPI':source.name+' · archived game-model render / PokéAPI';
- let credit=style==='cobblemon'?'Cobblemon community model sprite archive':style==='game'?gameCredit:style==='pixel'?activeForm().pixelCredit+' / PokéAPI · '+(pixelAnimated?'animated':'still image'):'Official Pokémon artwork / PokéAPI · still image';
+ let credit=style==='showdown'?'Pokémon Showdown battle animations · PokéAPI sprite archive':style==='cobblemon'?'Cobblemon community model sprite archive':style==='game'?gameCredit:style==='pixel'?activeForm().pixelCredit+' / PokéAPI · '+(pixelAnimated?'animated':'still image'):'Official Pokémon artwork / PokéAPI · still image';
  if(state.style==='auto'&&state.game==='auto')credit='Auto · '+credit;
- if(!lookup()){credit='No '+(style==='cobblemon'?'Cobblemon sprite':style==='game'?'game-render':style==='pixel'?'pixel':'artwork')+' asset for this form. Choose Auto or another asset style.'}
+ if(!lookup()){credit='No '+(style==='showdown'?'animated Showdown sprite':style==='cobblemon'?'Cobblemon sprite':style==='game'?'game-render':style==='pixel'?'pixel':'artwork')+' asset for this form. Choose Auto or another asset style.'}
  $('asset-credit').textContent=credit;$('asset-credit').classList.toggle('warning',!lookup());
 }
 function choosePokemon(id){
