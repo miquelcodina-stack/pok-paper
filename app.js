@@ -55,6 +55,17 @@ function showdownAssetSet(layer=activeLayer()){
   back_shiny_female:base+'back/shiny/female/'+id+'.gif'
  };
 }
+function showdownCdnAssetSet(layer=activeLayer()){
+ const p=layer?.settings?.pokemon,f=activeForm(layer);
+ if(!p?.slug||f?.name!=='Standard')return{};
+ const root='https://play.pokemonshowdown.com/sprites/',slug=p.slug;
+ return {
+  front_default:root+'ani/'+slug+'.gif',
+  front_shiny:root+'ani-shiny/'+slug+'.gif',
+  back_default:root+'ani-back/'+slug+'.gif',
+  back_shiny:root+'ani-back-shiny/'+slug+'.gif'
+ };
+}
 function animatedAssetCandidates(layer,f){
  const id=Number(layer?.settings?.pokemon?.id);if(!Number.isInteger(id)||id<1)return[];
  const root='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/';
@@ -62,15 +73,16 @@ function animatedAssetCandidates(layer,f){
  const candidates=[];
  const formSet=f.pixel?.animated||{};
  if(typeof formSet.front_default==='string'&&/\.(gif|webp)(\?|$)/i.test(formSet.front_default))candidates.push({style:'animated',key:'form-animated',name:'PokéAPI · animated form sprite',set:formSet});
- if(id<=807)candidates.push({style:'animated',key:'ultra-sun-moon',name:'Ultra Sun & Ultra Moon · animated 128px sprites',set:makeSet(root+'generation-vii/ultra-sun-ultra-moon/')});
- if(id<=1025)candidates.push({style:'animated',key:'black-white',name:'Black & White · animated 96px sprites',set:makeSet(root+'generation-v/black-white/animated/')});
- candidates.push({style:'animated',key:'showdown',name:'Pokémon Showdown · animated battle sprites',set:showdownAssetSet(layer)});
+ const live=showdownCdnAssetSet(layer);
+ if(live.front_default)candidates.push({style:'animated',key:'showdown-live',name:'Pokémon Showdown · live animated sprites',set:live});
+ candidates.push({style:'animated',key:'showdown-archive',name:'Pokémon Showdown · animated sprite archive',set:showdownAssetSet(layer)});
+ if(id<=649)candidates.push({style:'animated',key:'black-white',name:'Black & White · animated battle sprites',set:makeSet(root+'generation-v/black-white/animated/')});
  return candidates.filter(candidate=>candidate.set.front_default&&!failedAnimatedSources.has(candidate.set.front_default));
 }
 function assetCandidates(layer=activeLayer()){
  const f=activeForm(layer);if(!f)return[];const s=layer.settings;
  if(s.style==='animated')return animatedAssetCandidates(layer,f);
- if(s.style==='showdown'){const set=showdownAssetSet(layer);return set.front_default?[{style:'showdown',key:'showdown',name:'Pokémon Showdown animated sprites',set}]:[];}
+ if(s.style==='showdown')return animatedAssetCandidates(layer,f).filter(candidate=>candidate.key.startsWith('showdown-')).map(candidate=>({...candidate,style:'showdown'}));
  if(s.style==='cobblemon'){const set=cobblemonAssetSet(layer);return set.front_default?[{style:'cobblemon',key:'cobblemon',name:'Cobblemon model sprites',set}]:[];}
  const games=availableGames(layer).filter(game=>s.game==='auto'||game.id===s.game).map(game=>({style:'game',key:game.id,name:game.name,set:f.games[game.id]}));
  const art={style:'art',key:'art',set:f.art||{}};
@@ -155,7 +167,7 @@ function updateAvailability(){
  $('shiny').classList.toggle('active',state.shiny);$('shiny').setAttribute('aria-pressed',String(state.shiny));
  [...$('view-select').options].forEach(o=>o.disabled=!available(o.value,state.gender,state.shiny));
  $('view-select').value=state.view;$('view-select').disabled=['art','cobblemon'].includes(style)||!available('back',state.gender,state.shiny);
- $('gender-select').value=state.gender;$('gender-label').hidden=['cobblemon','showdown'].includes(style);
+ $('gender-select').value=state.gender;$('gender-label').hidden=['cobblemon','showdown','animated'].includes(style);
  $('gender-select').options[1].disabled=!available(state.view,'female',state.shiny);
  $('gender-select').disabled=!available(state.view,'female',state.shiny);
  $('style-select').value=state.style;
@@ -163,7 +175,7 @@ function updateAvailability(){
  const currentKey=keyFor().replace('_default_female','_female');
  const source=assetCandidates().find(candidate=>candidate.set[currentKey]&&!failedAnimatedSources.has(candidate.set[currentKey]))||resolvedAsset();
  const gameCredit=source.key==='sword-shield'?'Sword & Shield · game-model renders by FallenDeity / PokéAPI':source.key==='home'?'Pokémon HOME · archived render / PokéAPI':source.name+' · archived game-model render / PokéAPI';
- let credit=style==='animated'?source.name+' · PokéAPI sprite archive':style==='showdown'?'Pokémon Showdown battle animations · PokéAPI sprite archive':style==='cobblemon'?'Cobblemon community model sprite archive':style==='game'?gameCredit:style==='pixel'?activeForm().pixelCredit+' / PokéAPI · '+(pixelAnimated?'animated':'still image'):'Official Pokémon artwork / PokéAPI · still image';
+ let credit=style==='animated'?source.name+' · animated GIF':style==='showdown'?source.name+' · animated GIF':style==='cobblemon'?'Cobblemon community model sprite archive':style==='game'?gameCredit:style==='pixel'?activeForm().pixelCredit+' / PokéAPI · '+(pixelAnimated?'animated':'still image'):'Official Pokémon artwork / PokéAPI · still image';
  if(state.style==='auto'&&state.game==='auto')credit='Auto · '+credit;
  if(!lookup()){credit='No '+(style==='animated'?'animated battle sprite':style==='showdown'?'animated Showdown sprite':style==='cobblemon'?'Cobblemon sprite':style==='game'?'game-render':style==='pixel'?'pixel':'artwork')+' asset for this form. Choose Auto or another asset style.'}
  $('asset-credit').textContent=credit;$('asset-credit').classList.toggle('warning',!lookup());
@@ -404,7 +416,7 @@ function renderWallpaper(g,w,h,overrides=null){
    const sy=cy+sz*.34,sw=sz*.35,sh=Math.max(4,h*.012);
    g.fillRect(cx-sw*.44,sy-sh,sw*.88,sh*2);g.fillRect(cx-sw*.5,sy-sh*.5,sw,sh);
   }
-  g.imageSmoothingEnabled=assetStyle(layer)!=='pixel';
+  g.imageSmoothingEnabled=!['pixel','animated','showdown'].includes(assetStyle(layer));
   g.drawImage(image,cx-iw/2,cy-ih/2,iw,ih);g.restore();
  }else if(r.failed&&layer===activeLayer()){
   g.fillStyle=ink;g.textAlign='center';g.font=`500 ${Math.max(18,w*.035)}px "DM Sans", sans-serif`;
