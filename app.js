@@ -37,7 +37,7 @@ function cobblemonAssetSet(layer=activeLayer()){
  const formText=normalize(f.name);
  const desired=Object.entries(aliases).find(([key])=>formText.includes(key))?.[1]||'standard';
  const records=cobblemonAssets.filter(record=>record.id===layer.settings.pokemon.id);
- const record=records.find(item=>normalize(item.form)===normalize(desired))||(desired!=='standard'?records.find(item=>item.form==='standard'):null);
+ const record=records.find(item=>normalize(item.form).includes(normalize(desired)))||(desired!=='standard'?records.find(item=>item.form==='standard'):null);
  if(!record)return{};
  return {front_default:cobblemonAssetBase+record.normal,front_shiny:record.shiny?cobblemonAssetBase+record.shiny:null};
 }
