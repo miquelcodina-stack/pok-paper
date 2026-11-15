@@ -60,6 +60,8 @@ function animatedAssetCandidates(layer,f){
  const root='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/';
  const makeSet=base=>({front_default:base+id+'.gif',front_shiny:base+'shiny/'+id+'.gif',back_default:base+'back/'+id+'.gif',back_shiny:base+'back/shiny/'+id+'.gif',front_female:base+'female/'+id+'.gif',front_shiny_female:base+'shiny/female/'+id+'.gif',back_female:base+'back/female/'+id+'.gif',back_shiny_female:base+'back/shiny/female/'+id+'.gif'});
  const candidates=[];
+ const formSet=f.pixel?.animated||{};
+ if(typeof formSet.front_default==='string'&&/\.(gif|webp)(\?|$)/i.test(formSet.front_default))candidates.push({style:'animated',key:'form-animated',name:'PokéAPI · animated form sprite',set:formSet});
  if(id<=807)candidates.push({style:'animated',key:'ultra-sun-moon',name:'Ultra Sun & Ultra Moon · animated 128px sprites',set:makeSet(root+'generation-vii/ultra-sun-ultra-moon/')});
  if(id<=1025)candidates.push({style:'animated',key:'black-white',name:'Black & White · animated 96px sprites',set:makeSet(root+'generation-v/black-white/animated/')});
  candidates.push({style:'animated',key:'showdown',name:'Pokémon Showdown · animated battle sprites',set:showdownAssetSet(layer)});
@@ -87,16 +89,21 @@ function resolvedAsset(layer=activeLayer()){
 function assetStyle(layer=activeLayer()){return resolvedAsset(layer).style}
 function assetSet(layer=activeLayer()){return resolvedAsset(layer).set}
 function keyFor(shiny=state.shiny,view=state.view,gender=state.gender){return view+'_'+(shiny?'shiny':'default')+(gender==='female'?'_female':'')}
-function lookup(shiny=state.shiny,view=state.view,gender=state.gender){
- const set=assetSet();const key=keyFor(shiny,view,gender).replace('_default_female','_female');
- return set[key]||null;
+function lookup(shiny=state.shiny,view=state.view,gender=state.gender,layer=activeLayer()){
+ const key=keyFor(shiny,view,gender).replace('_default_female','_female'),f=activeForm(layer);
+ if(layer?.settings?.style==='pixel'){
+  const animated=f?.pixel?.animated?.[key];
+  if(animated&&!failedAnimatedSources.has(animated))return animated;
+ }
+ for(const candidate of assetCandidates(layer)){
+  const url=candidate.set[key];
+  if(url&&!failedAnimatedSources.has(url))return url;
+ }
+ return null;
 }
 function getSource(layer=activeLayer()){
- const f=activeForm(layer);if(!f)return null;const s=layer.settings,key=keyFor(s.shiny,s.view,s.gender).replace('_default_female','_female');
- if(assetStyle(layer)==='pixel'){const set=f.pixel.animated||{};if(set[key])return set[key]}
- const url=assetSet(layer)[key];
-
- return url;
+ if(!layer)return null;const s=layer.settings;
+ return lookup(s.shiny,s.view,s.gender,layer);
 }
 function searchKey(value){return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/♀/g,'f').replace(/♂/g,'m').replace(/[^a-z0-9]/g,'')}
 function filteredPokemon(){
@@ -139,8 +146,7 @@ function updateAvailability(){
  const style=assetStyle();
  if(style==='showdown')state.gender='default';
  if(style==='art'||style==='cobblemon'){state.view='front';state.gender='default'}
- const set=assetSet();
- const available=(view,gender,shiny)=>!!set[keyFor(shiny,view,gender).replace('_default_female','_female')];
+ const available=(view,gender,shiny)=>!!lookup(shiny,view,gender,activeLayer());
  if(!available(state.view,state.gender,state.shiny)&&available('front','default',state.shiny)){state.view='front';state.gender='default'}
  if(!available(state.view,state.gender,state.shiny)&&available('front','default',false)){state.shiny=false;state.view='front';state.gender='default'}
  $('normal').disabled=!available(state.view,state.gender,false);
@@ -154,7 +160,8 @@ function updateAvailability(){
  $('gender-select').disabled=!available(state.view,'female',state.shiny);
  $('style-select').value=state.style;
  const pixelAnimated=style==='pixel'&&!!activeForm().pixel.animated?.[keyFor().replace('_default_female','_female')];
- const source=resolvedAsset();
+ const currentKey=keyFor().replace('_default_female','_female');
+ const source=assetCandidates().find(candidate=>candidate.set[currentKey]&&!failedAnimatedSources.has(candidate.set[currentKey]))||resolvedAsset();
  const gameCredit=source.key==='sword-shield'?'Sword & Shield · game-model renders by FallenDeity / PokéAPI':source.key==='home'?'Pokémon HOME · archived render / PokéAPI':source.name+' · archived game-model render / PokéAPI';
  let credit=style==='animated'?source.name+' · PokéAPI sprite archive':style==='showdown'?'Pokémon Showdown battle animations · PokéAPI sprite archive':style==='cobblemon'?'Cobblemon community model sprite archive':style==='game'?gameCredit:style==='pixel'?activeForm().pixelCredit+' / PokéAPI · '+(pixelAnimated?'animated':'still image'):'Official Pokémon artwork / PokéAPI · still image';
  if(state.style==='auto'&&state.game==='auto')credit='Auto · '+credit;
@@ -324,8 +331,9 @@ async function loadSprite(layer=activeLayer()){
   if(token!==r.token||!layers.includes(layer))return;
   if(s.style==='animated'||s.style==='showdown'||(s.style==='auto'&&assetStyle(layer)==='animated')){
    failedAnimatedSources.add(source);
+   if(layer===activeLayer())updateAvailability();
    const next=getSource(layer);
-   if(next&&next!==source){if(layer===activeLayer())updateAvailability();loadSprite(layer);return}
+   if(next&&next!==source){loadSprite(layer);return}
   }
   if(['auto','game'].includes(s.style)&&s.game==='auto'){
    failedAutoSources.add(sourcePrimary);
