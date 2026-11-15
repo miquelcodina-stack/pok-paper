@@ -1,8 +1,8 @@
-# Cobblemon sprites and shader directory
+# Cobblemon assets and wallpaper shaders
 
-Poképaper's Cobblemon view indexes every PNG in the upstream community sprite archive at [BeubeuReturns/cobblemon_sprites](https://github.com/BeubeuReturns/cobblemon_sprites). The snapshot used here contains 2,176 PNGs, grouped into 1,089 Pokémon/form entries, including standard and shiny images where present. The upstream snapshot commit is c7c327ee3c2b8825284353d3bbe32dd505ed3033 (2026-10-17).
+Cobblemon model sprites are an **asset style inside the existing Pokémon wallpaper editor**. Select a Pokémon, open its **Asset style** menu, and choose **Cobblemon model sprites** when that species/form is present in the bundled archive. Normal and shiny images are offered when the archive contains both. These are static PNGs; the source archive does not provide animation for these models.
 
-Images are hot-linked from the upstream repository's immutable commit URL rather than copied into this repository. The archive is community-maintained and is not an official Cobblemon asset feed. Pokémon names, models and related artwork remain the property of their respective rights holders.
+The bundled index is generated from the community archive [BeubeuReturns/cobblemon_sprites](https://github.com/BeubeuReturns/cobblemon_sprites). This snapshot contains 2,176 PNG files grouped into 1,089 species/form entries and is pinned to upstream commit c7c327ee3c2b8825284353d3bbe32dd505ed3033 (2026-10-17). It is a community-maintained archive, not an official Cobblemon asset feed.
 
 To refresh the index after the upstream repository changes, run:
 
@@ -10,6 +10,8 @@ To refresh the index after the upstream repository changes, run:
 node scripts/sync-cobblemon-sprites.mjs
 ```
 
-Then commit the generated `cobblemon-sprites.json` and redeploy. The script follows the upstream default branch and pins image URLs to the newest commit.
+Commit the generated `cobblemon-sprites.json` and redeploy. The script follows the upstream default branch and pins image URLs to the selected upstream commit.
 
-The shader directory links to the creators' Modrinth project pages. Check each project's current Minecraft version, mod loader, renderer and hardware requirements before using it.
+**Wallpaper shaders** are visual effects in the editor's **Set the scene** panel. Soft glow, dream haze, chromatic shift, retro scanlines and aurora light are applied to the wallpaper background itself, with adjustable intensity. They are included in PNG and GIF exports. They are not Minecraft shader packs.
+
+Pokémon names, models, artwork and sprites remain the property of their respective rights holders. This fan project is not affiliated with or endorsed by Nintendo, Game Freak, The Pokémon Company or the Cobblemon team.
