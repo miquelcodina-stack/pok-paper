@@ -121,7 +121,7 @@ function updateAvailability(){
  $('shiny').classList.toggle('active',state.shiny);$('shiny').setAttribute('aria-pressed',String(state.shiny));
  [...$('view-select').options].forEach(o=>o.disabled=!available(o.value,state.gender,state.shiny));
  $('view-select').value=state.view;$('view-select').disabled=['art','cobblemon'].includes(style)||!available('back',state.gender,state.shiny);
- $('gender-select').value=state.gender;
+ $('gender-select').value=state.gender;$('gender-label').hidden=style==='cobblemon';
  $('gender-select').options[1].disabled=!available(state.view,'female',state.shiny);
  $('gender-select').disabled=!available(state.view,'female',state.shiny);
  $('style-select').value=state.style;
