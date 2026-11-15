@@ -1,6 +1,6 @@
 /* Poképaper: client-only editor. No user data leaves the browser. */
 const $=id=>document.getElementById(id);
-const state={pokemon:null,form:0,shiny:false,view:'front',gender:'default',style:'auto',game:'auto',background:'adaptive',animate:!matchMedia('(prefers-reduced-motion: reduce)').matches,texture:true,shadow:true,label:true,size:100,format:'desktop',width:1920,height:1080,solid:'#efdcb5',posX:.5,posY:null,moveMode:false,exportType:'png'};
+const state={pokemon:null,form:0,shiny:false,view:'front',gender:'default',style:'auto',game:'auto',background:'adaptive',animate:!matchMedia('(prefers-reduced-motion: reduce)').matches,texture:true,shadow:true,label:true,size:100,format:'desktop',width:1920,height:1080,solid:'#efdcb5',posX:.5,posY:null,moveMode:false,exportType:'png',shader:'none',shaderStrength:60};
 const canvas=$('wallpaper'),ctx=canvas.getContext('2d');
 const presets=[
  {id:'adaptive',name:'Adaptive',colors:['#f1c59d','#fff0d2']},
@@ -11,7 +11,7 @@ const presets=[
  {id:'solid',name:'Solid color',colors:['#efdcb5','#efdcb5']}
 ];
 const formats={desktop:[{w:1920,h:1080,label:'1920 × 1080 · Full HD'},{w:2560,h:1440,label:'2560 × 1440 · QHD'},{w:3840,h:2160,label:'3840 × 2160 · 4K'}],phone:[{w:1080,h:1920,label:'1080 × 1920 · Full HD'},{w:1440,h:2560,label:'1440 × 2560 · QHD'},{w:1290,h:2796,label:'1290 × 2796 · Tall phone'}],square:[{w:1080,h:1080,label:'1080 × 1080 · Square'},{w:2048,h:2048,label:'2048 × 2048 · High res'}]};
-let pokemon=[],catalog=null,raf=0,lastDraw=0,noticeTimer,adaptive=['#efbf95','#fff0d5'];
+let pokemon=[],catalog=null,cobblemonAssets=[],cobblemonAssetBase='',raf=0,lastDraw=0,noticeTimer,adaptive=['#efbf95','#fff0d5'];
 let exportJob=null,drag=null,layers=[],selectedLayerId=null,nextLayerId=1,addingPokemon=false,lastDeleted=null;
 const spriteKeys=['pokemon','form','shiny','view','gender','style','game','animate','shadow','size','posX','posY'];
 const spriteDefaults=Object.fromEntries(spriteKeys.map(key=>[key,state[key]]));
@@ -30,8 +30,20 @@ function availableGames(layer=activeLayer()){
  const f=activeForm(layer);
  return (catalog?.gameSources||[]).filter(game=>f?.games?.[game.id]?.front_default);
 }
+function cobblemonAssetSet(layer=activeLayer()){
+ const f=activeForm(layer);if(!f||!cobblemonAssets.length)return{};
+ const normalize=value=>String(value||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+ const aliases={alola:'alolan',alolan:'alolan',galar:'galarian',galarian:'galarian',hisui:'hisuian',hisuian:'hisuian',paldea:'paldean',paldean:'paldean'};
+ const formText=normalize(f.name);
+ const desired=Object.entries(aliases).find(([key])=>formText.includes(key))?.[1]||'standard';
+ const records=cobblemonAssets.filter(record=>record.id===layer.settings.pokemon.id);
+ const record=records.find(item=>normalize(item.form).includes(normalize(desired)))||(desired!=='standard'?records.find(item=>item.form==='standard'):null);
+ if(!record)return{};
+ return {front_default:cobblemonAssetBase+record.normal,front_shiny:record.shiny?cobblemonAssetBase+record.shiny:null};
+}
 function assetCandidates(layer=activeLayer()){
  const f=activeForm(layer);if(!f)return[];const s=layer.settings;
+ if(s.style==='cobblemon'){const set=cobblemonAssetSet(layer);return set.front_default?[{style:'cobblemon',key:'cobblemon',name:'Cobblemon model sprites',set}]:[];}
  const games=availableGames(layer).filter(game=>s.game==='auto'||s.game===game.id).map(game=>({style:'game',key:game.id,name:game.name,set:f.games[game.id]}));
  const art={style:'art',key:'art',set:f.art||{}};
  const pixel={style:'pixel',key:'pixel',set:{...f.classic,...Object.fromEntries(Object.entries(f.pixel||{}).filter(([k,v])=>typeof v==='string'&&v))}};
@@ -98,7 +110,7 @@ function updateAvailability(){
  $('game-source-row').hidden=!['auto','game'].includes(state.style);
  $('game-source').disabled=games.length===0;
  const style=assetStyle();
- if(style==='art'){state.view='front';state.gender='default'}
+ if(style==='art'||style==='cobblemon'){state.view='front';state.gender='default'}
  const set=assetSet();
  const available=(view,gender,shiny)=>!!set[keyFor(shiny,view,gender).replace('_default_female','_female')];
  if(!available(state.view,state.gender,state.shiny)&&available('front','default',state.shiny)){state.view='front';state.gender='default'}
@@ -108,17 +120,17 @@ function updateAvailability(){
  $('normal').classList.toggle('active',!state.shiny);$('normal').setAttribute('aria-pressed',String(!state.shiny));
  $('shiny').classList.toggle('active',state.shiny);$('shiny').setAttribute('aria-pressed',String(state.shiny));
  [...$('view-select').options].forEach(o=>o.disabled=!available(o.value,state.gender,state.shiny));
- $('view-select').value=state.view;$('view-select').disabled=style==='art'||!available('back',state.gender,state.shiny);
- $('gender-select').value=state.gender;
+ $('view-select').value=state.view;$('view-select').disabled=['art','cobblemon'].includes(style)||!available('back',state.gender,state.shiny);
+ $('gender-select').value=state.gender;$('gender-label').hidden=style==='cobblemon';
  $('gender-select').options[1].disabled=!available(state.view,'female',state.shiny);
  $('gender-select').disabled=!available(state.view,'female',state.shiny);
  $('style-select').value=state.style;
  const pixelAnimated=style==='pixel'&&!!activeForm().pixel.animated?.[keyFor().replace('_default_female','_female')];
  const source=resolvedAsset();
  const gameCredit=source.key==='sword-shield'?'Sword & Shield · game-model renders by FallenDeity / PokéAPI':source.key==='home'?'Pokémon HOME · archived render / PokéAPI':source.name+' · archived game-model render / PokéAPI';
- let credit=style==='game'?gameCredit:style==='pixel'?activeForm().pixelCredit+' / PokéAPI · '+(pixelAnimated?'animated':'still image'):'Official Pokémon artwork / PokéAPI · still image';
+ let credit=style==='cobblemon'?'Cobblemon community model sprite archive':style==='game'?gameCredit:style==='pixel'?activeForm().pixelCredit+' / PokéAPI · '+(pixelAnimated?'animated':'still image'):'Official Pokémon artwork / PokéAPI · still image';
  if(state.style==='auto'&&state.game==='auto')credit='Auto · '+credit;
- if(!lookup()){credit='No '+(style==='game'?'game-render':style==='pixel'?'pixel':'artwork')+' asset for this form. Choose Auto or another asset style.'}
+ if(!lookup()){credit='No '+(style==='cobblemon'?'Cobblemon sprite':style==='game'?'game-render':style==='pixel'?'pixel':'artwork')+' asset for this form. Choose Auto or another asset style.'}
  $('asset-credit').textContent=credit;$('asset-credit').classList.toggle('warning',!lookup());
 }
 function choosePokemon(id){
@@ -335,7 +347,7 @@ function spriteBounds(w,h,image,layer=activeLayer()){
  return {sz,iw:ratio>=1?sz:sz*ratio,ih:ratio>=1?sz/ratio:sz,cx:w*s.posX,cy:h*(s.posY??(phone?.43:.4))};
 }
 function renderWallpaper(g,w,h,overrides=null){
- g.clearRect(0,0,w,h);drawScene(g,w,h);
+ g.clearRect(0,0,w,h);drawBackground(g,w,h);
  const phone=h/w>1.3,night=state.background==='midnight';
  const ink=night?'#f7edcf':'#575641';
  for(const layer of layers){
@@ -378,6 +390,27 @@ function renderWallpaper(g,w,h,overrides=null){
   const bx=w*.5,by=h*.94,s=w*.0018;
   g.fillStyle=night?'#d7d6ba88':'#85847077';g.fillRect(bx-s*6,by,s*3,s*3);g.fillRect(bx-s,by,s*3,s*3);g.fillRect(bx+s*4,by,s*3,s*3);
  }
+}
+let shaderCanvas=null;
+function drawBackground(g,w,h){
+ if(!shaderCanvas)shaderCanvas=document.createElement('canvas');
+ if(shaderCanvas.width!==w||shaderCanvas.height!==h){shaderCanvas.width=w;shaderCanvas.height=h}
+ const bg=shaderCanvas.getContext('2d');bg.clearRect(0,0,w,h);drawScene(bg,w,h);
+ const amount=state.shaderStrength/100,offset=Math.max(1,Math.round(Math.min(w,h)*.004*amount));
+ g.save();g.drawImage(shaderCanvas,0,0,w,h);
+ if(state.shader==='glow'&&amount>0){
+  g.save();g.globalCompositeOperation='screen';g.globalAlpha=.16+.28*amount;g.filter='blur('+Math.max(2,Math.min(w,h)*.035*amount)+'px)';g.drawImage(shaderCanvas,0,0,w,h);g.restore();
+ }else if(state.shader==='dream'&&amount>0){
+  g.globalAlpha=.12+.22*amount;const haze=g.createLinearGradient(0,0,w,h);haze.addColorStop(0,'#fff4e5');haze.addColorStop(.55,'#d8c8f4');haze.addColorStop(1,'#f8c8d5');g.fillStyle=haze;g.fillRect(0,0,w,h);
+ }else if(state.shader==='chromatic'&&amount>0){
+  g.globalCompositeOperation='screen';g.globalAlpha=.12+.2*amount;g.drawImage(shaderCanvas,-offset,0,w,h);g.globalAlpha=.12+.2*amount;g.drawImage(shaderCanvas,offset,0,w,h);
+ }else if(state.shader==='scanlines'&&amount>0){
+  g.fillStyle='rgba(20,25,35,'+(.08*amount)+')';const step=Math.max(3,Math.round(h/240));for(let y=0;y<h;y+=step*2)g.fillRect(0,y,w,Math.max(1,step*.55));
+ }else if(state.shader==='aurora'&&amount>0){
+  g.globalCompositeOperation='screen';g.globalAlpha=.12+.2*amount;
+  for(let i=0;i<3;i++){const x=w*(.18+i*.32),y=h*(.2+(i%2)*.25),r=Math.min(w,h)*(.28+.1*amount);const glow=g.createRadialGradient(x,y,0,x,y,r);glow.addColorStop(0,['#83e5c5','#9c9bff','#f3a8d2'][i]);glow.addColorStop(1,'transparent');g.fillStyle=glow;g.fillRect(0,0,w,h)}
+ }
+ g.restore();
 }
 function draw(){
  renderWallpaper(ctx,canvas.width,canvas.height);
@@ -627,6 +660,9 @@ async function init(){
  $('layer-backward').addEventListener('click',()=>reorderLayer(-1));
  $('layer-forward').addEventListener('click',()=>reorderLayer(1));
  $('sprite-list').addEventListener('click',e=>{const button=e.target.closest('[data-layer-id]');if(button)selectLayer(Number(button.dataset.layerId))});
+ $('shader-select').value=state.shader;$('shader-strength').value=state.shaderStrength;$('shader-strength-value').value=state.shaderStrength+'%';
+ $('shader-select').addEventListener('change',e=>{state.shader=e.target.value;draw()});
+ $('shader-strength').addEventListener('input',e=>{state.shaderStrength=Number(e.target.value);$('shader-strength-value').value=state.shaderStrength+'%';draw()});
  $('background-grid').innerHTML=presets.map(p=>`<button class="background-option ${p.id==='adaptive'?'active':''}" data-bg="${p.id}" aria-pressed="${p.id==='adaptive'}" data-testid="background-${p.id}"><span class="swatch swatch-${p.id}"></span>${p.name}</button>`).join('');
  $('background-grid').addEventListener('click',e=>{const b=e.target.closest('[data-bg]');if(b)setBackground(b.dataset.bg)});
  $('pokemon-grid').addEventListener('click',e=>{const b=e.target.closest('[data-id]');if(b)choosePokemon(Number(b.dataset.id))});
@@ -667,8 +703,9 @@ async function init(){
  });
  setFormat('desktop');setAnimation(state.animate);
  try{
- const responses=await Promise.all([fetch('pokemon.json'),fetch('catalog.json')]);if(responses.some(r=>!r.ok))throw Error('Pokédex unavailable');
- [pokemon,catalog]=await Promise.all(responses.map(r=>r.json()));
+ const responses=await Promise.all([fetch('pokemon.json'),fetch('catalog.json'),fetch('cobblemon-sprites.json').catch(()=>null)]);if(!responses[0].ok||!responses[1].ok)throw Error('Pokédex unavailable');
+ [pokemon,catalog]=await Promise.all([responses[0].json(),responses[1].json()]);
+ if(responses[2]?.ok){const cobblemon=await responses[2].json();cobblemonAssets=cobblemon.records||[];cobblemonAssetBase=cobblemon.assetBase||'';}
  $('total-count').textContent=pokemon.length;
  $('generation-filter').innerHTML='<option value="all">All generations</option>'+catalog.generations.map(g=>`<option value="${g.id}">Gen ${g.name} · ${g.region} (${g.speciesCount})</option>`).join('');
  $('catalog-summary').textContent=`${catalog.speciesCount.toLocaleString()} species across ${catalog.generations.length} generations, with ${catalog.formCount.toLocaleString()} cataloged forms and varieties.`;
