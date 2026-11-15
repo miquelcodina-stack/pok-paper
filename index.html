@@ -15,7 +15,7 @@
 <a class="skip" href="#workspace">Skip to creator</a>
 <header class="topbar">
  <a class="wordmark" href="./" aria-label="Poképaper home">poképaper<span class="wordmark-dot">.</span></a>
- <nav aria-label="Main navigation"><button class="nav-active" data-testid="button-studio">Wallpaper studio</button><button id="about-button" data-testid="button-about">About the project <span>↗</span></button></nav>
+ <nav aria-label="Main navigation"><button class="nav-active" data-view="studio" data-testid="button-studio">Wallpaper studio</button><button id="cobblemon-nav" data-view="cobblemon">Cobblemon &amp; shaders</button><button id="about-button" data-testid="button-about">About the project <span>↗</span></button></nav>
  <span class="edition"><span class="green-dot"></span> NATIONAL DEX <span class="edition-version">v.02</span></span>
 </header>
 <main>
@@ -84,6 +84,37 @@
    </div>
   </aside>
  </div>
+
+ <section class="cobblemon-view" id="cobblemon-view" hidden aria-label="Cobblemon sprites and Minecraft shaders">
+  <div class="cobblemon-hero">
+   <p class="eyebrow"><span class="tiny-pixel"></span> THE COBBLEMON COLLECTION</p>
+   <h1>More than a thousand little legends.</h1>
+   <p class="subtitle">Browse the community model-sprite archive, including shiny colours and regional forms, then find a shader for your world.</p>
+   <div class="cobblemon-stats"><strong id="cobblemon-file-count">2,176</strong><span>sprite images</span><span class="stat-divider">·</span><strong id="cobblemon-entry-count">1,089</strong><span>Pokémon &amp; forms</span></div>
+  </div>
+  <div class="cobblemon-browser">
+   <div class="cobblemon-section-heading"><div><p class="eyebrow">01 / SPRITE ARCHIVE</p><h2>Find your Cobblemon</h2></div><span id="cobblemon-results" class="count">Loading…</span></div>
+   <div class="cobblemon-filters">
+    <label class="cobblemon-search"><span class="sr-only">Search Cobblemon</span><i data-lucide="search"></i><input id="cobblemon-search" type="search" placeholder="Search name, Pokédex number, or form…"></label>
+    <label class="cobblemon-form-filter"><span class="sr-only">Filter by form</span><select id="cobblemon-form-filter"><option value="all">All forms</option><option value="standard">Standard forms</option><option value="alternate">Regional &amp; alternate forms</option></select></label>
+   </div>
+   <div id="cobblemon-grid" class="cobblemon-grid" aria-live="polite"><p class="loading-message">Opening the sprite archive…</p></div>
+   <button id="cobblemon-more" class="button cobblemon-more" hidden>Load more sprites</button>
+   <p class="cobblemon-attribution">Sprite images are loaded from the community archive at <a href="https://github.com/BeubeuReturns/cobblemon_sprites" target="_blank" rel="noopener">BeubeuReturns/cobblemon_sprites</a>. This catalogue reflects its latest published snapshot (<span id="cobblemon-source-date">17 Oct 2026</span>); it is not an official Cobblemon asset feed. Pokémon names and related artwork remain the property of their respective rights holders.</p>
+  </div>
+  <section class="shader-directory">
+   <div class="cobblemon-section-heading"><div><p class="eyebrow">02 / MAKE THE WORLD GLOW</p><h2>Shader directory</h2><p class="subtitle">A few popular packs to explore. Check each project's page for current Minecraft and loader compatibility.</p></div></div>
+   <div class="shader-grid">
+    <article class="shader-card"><span class="shader-tag">Cinematic · versatile</span><h3>Complementary Reimagined</h3><p>Rich atmosphere, polished lighting, and lots of visual settings to tune.</p><a href="https://modrinth.com/shader/complementary-reimagined" target="_blank" rel="noopener">Explore shader ↗</a></article>
+    <article class="shader-card"><span class="shader-tag">Classic · balanced</span><h3>BSL Shaders</h3><p>Soft lighting, warm colours, and a familiar all-round shader style.</p><a href="https://modrinth.com/shader/bsl-shaders" target="_blank" rel="noopener">Explore shader ↗</a></article>
+    <article class="shader-card"><span class="shader-tag">Performance-minded</span><h3>MakeUp Ultra Fast</h3><p>Configurable effects designed to keep visual flair adjustable.</p><a href="https://modrinth.com/shader/makeup-ultra-fast-shaders" target="_blank" rel="noopener">Explore shader ↗</a></article>
+    <article class="shader-card"><span class="shader-tag">Vibrant · colourful</span><h3>Sildur’s Vibrant Shaders</h3><p>Bright colours and several presets for different visual tastes.</p><a href="https://modrinth.com/shader/sildurs-vibrant-shaders" target="_blank" rel="noopener">Explore shader ↗</a></article>
+   </div>
+   <p class="shader-note">Shaders need a compatible Minecraft renderer and graphics hardware. Fabric players commonly use Iris; Forge/NeoForge compatibility varies by shader and version. Always check the pack's current installation notes.</p>
+   <a class="all-shaders" href="https://modrinth.com/shaders" target="_blank" rel="noopener">Browse more shaders on Modrinth ↗</a>
+  </section>
+ </section>
+
  <footer><span>Made for the love of Pokémon. <span class="footer-heart">♥</span></span><span><kbd>R</kbd> randomize <span class="footer-separator">/</span> <kbd>SPACE</kbd> pause animation</span><button id="credits-button" data-testid="button-credits">Credits & assets <span>↗</span></button></footer>
 </main>
 <dialog id="about-dialog">
@@ -104,8 +135,9 @@
  <p class="dialog-note">Every region. A little more you.</p>
 </dialog>
 <div class="notice" id="notice" role="status" aria-live="polite"></div>
-<script src="vendor/lucide.min.js"></script>
+<script src="lucide.min.js"></script>
 <script src="app.js" defer></script>
+<script src="cobblemon.js" defer></script>
 <script data-pplx-inline-edit>
 (function () {
   if (window === window.top) return;
