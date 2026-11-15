@@ -591,6 +591,7 @@ function saveBlob(blob,extension){
 async function encodeGif(job){
  $('export-progress').hidden=false;exportProgress(0,1,'Preparing maximum-quality GIF…');
  await waitForExport(Promise.all(layers.map(layer=>layer.runtime.animationTask)),job);assertExport(job);
+ if(animatedLayers().some(layer=>layer.runtime.nativeAnimated&&!layer.runtime.bytes))throw Error('This browser can preview the animation, but animated GIF export needs ImageDecoder support. Use Chrome or Edge for animated exports.');
  const response=await fetch('gif-worker.js',{signal:job.abort.signal});
  if(!response.ok)throw Error('The GIF encoder could not load. Please try again.');
  const workerCode=await response.text();assertExport(job);
