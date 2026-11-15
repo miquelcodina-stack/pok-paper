@@ -43,5 +43,5 @@ const output = {
   entryCount: records.length,
   records,
 };
-await writeFile(new URL('../cobblemon-sprites.json', import.meta.url), JSON.stringify(output, null, 2) + '\\n');
+await writeFile(new URL('../cobblemon-sprites.json', import.meta.url), JSON.stringify(output, null, 2));
 console.log(`Indexed ${paths.length} sprites across ${records.length} Pokémon/form entries from ${latest.sha.slice(0, 7)}.`);
