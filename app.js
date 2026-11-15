@@ -91,7 +91,7 @@ function assetSet(layer=activeLayer()){return resolvedAsset(layer).set}
 function keyFor(shiny=state.shiny,view=state.view,gender=state.gender){return view+'_'+(shiny?'shiny':'default')+(gender==='female'?'_female':'')}
 function lookup(shiny=state.shiny,view=state.view,gender=state.gender,layer=activeLayer()){
  const key=keyFor(shiny,view,gender).replace('_default_female','_female'),f=activeForm(layer);
- if(layer?.settings?.style==='pixel'){
+ if(assetStyle(layer)==='pixel'){
   const animated=f?.pixel?.animated?.[key];
   if(animated&&!failedAnimatedSources.has(animated))return animated;
  }
