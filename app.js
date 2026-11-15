@@ -18,7 +18,7 @@ const spriteDefaults=Object.fromEntries(spriteKeys.map(key=>[key,state[key]]));
 function activeLayer(){return layers.find(layer=>layer.id===selectedLayerId)||null}
 for(const key of spriteKeys)Object.defineProperty(state,key,{get:()=>activeLayer()?.settings[key]??spriteDefaults[key],set:value=>{if(activeLayer())activeLayer().settings[key]=value}});
 function makeLayer(settings={}){
- return {id:nextLayerId++,settings:{...spriteDefaults,...settings},runtime:{sprite:null,frozen:null,ready:false,failed:false,token:0,decoder:null,frame:null,index:0,count:1,nextAt:0,decoding:false,animated:false,bytes:null,mime:null,animationTask:Promise.resolve(),color:null,source:''}};
+ return {id:nextLayerId++,settings:{...spriteDefaults,...settings},runtime:{sprite:null,frozen:null,ready:false,failed:false,token:0,decoder:null,frame:null,index:0,count:1,nextAt:0,decoding:false,animated:false,nativeAnimated:false,bytes:null,mime:null,animationTask:Promise.resolve(),color:null,source:''}};
 }
 function sceneReady(){return layers.every(layer=>layer.runtime.ready)}
 function animatedLayers(){return layers.filter(layer=>layer.settings.animate&&layer.runtime.animated)}
@@ -55,15 +55,19 @@ function showdownAssetSet(layer=activeLayer()){
   back_shiny_female:base+'back/shiny/female/'+id+'.gif'
  };
 }
-function animatedAssetCandidate(layer,f){
- const champions=f.games?.champions||{},showdown=showdownAssetSet(layer);
- const set={...showdown,...Object.fromEntries(Object.entries(champions).filter(([key,url])=>typeof url==='string'&&!failedAnimatedSources.has(url)))};
- const hasChampions=!!champions.front_default&&!failedAnimatedSources.has(champions.front_default);
- return set.front_default?{style:'animated',key:hasChampions?'champions':'showdown',name:hasChampions?'Pokémon Champions HD animated sprites':'Pokémon Showdown animated sprites',set}:null;
+function animatedAssetCandidates(layer,f){
+ const id=Number(layer?.settings?.pokemon?.id);if(!Number.isInteger(id)||id<1)return[];
+ const root='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/';
+ const makeSet=base=>({front_default:base+id+'.gif',front_shiny:base+'shiny/'+id+'.gif',back_default:base+'back/'+id+'.gif',back_shiny:base+'back/shiny/'+id+'.gif',front_female:base+'female/'+id+'.gif',front_shiny_female:base+'shiny/female/'+id+'.gif',back_female:base+'back/female/'+id+'.gif',back_shiny_female:base+'back/shiny/female/'+id+'.gif'});
+ const candidates=[];
+ if(id<=807)candidates.push({style:'animated',key:'ultra-sun-moon',name:'Ultra Sun & Ultra Moon · animated 128px sprites',set:makeSet(root+'generation-vii/ultra-sun-ultra-moon/')});
+ if(id<=1025)candidates.push({style:'animated',key:'black-white',name:'Black & White · animated 96px sprites',set:makeSet(root+'generation-v/black-white/animated/')});
+ candidates.push({style:'animated',key:'showdown',name:'Pokémon Showdown · animated battle sprites',set:showdownAssetSet(layer)});
+ return candidates.filter(candidate=>candidate.set.front_default&&!failedAnimatedSources.has(candidate.set.front_default));
 }
 function assetCandidates(layer=activeLayer()){
  const f=activeForm(layer);if(!f)return[];const s=layer.settings;
- if(s.style==='animated'){const candidate=animatedAssetCandidate(layer,f);return candidate?[candidate]:[];}
+ if(s.style==='animated')return animatedAssetCandidates(layer,f);
  if(s.style==='showdown'){const set=showdownAssetSet(layer);return set.front_default?[{style:'showdown',key:'showdown',name:'Pokémon Showdown animated sprites',set}]:[];}
  if(s.style==='cobblemon'){const set=cobblemonAssetSet(layer);return set.front_default?[{style:'cobblemon',key:'cobblemon',name:'Cobblemon model sprites',set}]:[];}
  const games=availableGames(layer).filter(game=>s.game==='auto'||game.id===s.game).map(game=>({style:'game',key:game.id,name:game.name,set:f.games[game.id]}));
@@ -72,11 +76,11 @@ function assetCandidates(layer=activeLayer()){
  if(s.style==='game'||(s.style==='auto'&&s.game!=='auto'))return games;
  if(s.style==='art')return[art];
  if(s.style==='pixel')return[pixel];
- const animated=s.style==='auto'&&s.game==='auto'?animatedAssetCandidate(layer,f):null;
- return [...(animated?[animated]:[]),...games,art,pixel];
+ const animated=s.style==='auto'&&s.game==='auto'?animatedAssetCandidates(layer,f):[];
+ return [...animated,...games,art,pixel];
 }
 function resolvedAsset(layer=activeLayer()){
- const s=layer?.settings||spriteDefaults,candidates=assetCandidates(layer).filter(c=>c.set.front_default);
+ const s=layer?.settings||spriteDefaults,candidates=assetCandidates(layer).filter(c=>c.set.front_default&&!failedAnimatedSources.has(c.set.front_default));
  const auto=(s.style==='auto'||s.style==='game')&&s.game==='auto';
  return candidates.find(c=>!auto||!failedAutoSources.has(c.set.front_default))||{style:s.style==='auto'?'game':s.style,key:'',set:{}};
 }
@@ -152,9 +156,9 @@ function updateAvailability(){
  const pixelAnimated=style==='pixel'&&!!activeForm().pixel.animated?.[keyFor().replace('_default_female','_female')];
  const source=resolvedAsset();
  const gameCredit=source.key==='sword-shield'?'Sword & Shield · game-model renders by FallenDeity / PokéAPI':source.key==='home'?'Pokémon HOME · archived render / PokéAPI':source.name+' · archived game-model render / PokéAPI';
- let credit=style==='animated'?(source.key==='champions'?'Pokémon Champions animated WebP sprites / PokéAPI':'Pokémon Showdown animated battle sprites · PokéAPI archive'):style==='showdown'?'Pokémon Showdown battle animations · PokéAPI sprite archive':style==='cobblemon'?'Cobblemon community model sprite archive':style==='game'?gameCredit:style==='pixel'?activeForm().pixelCredit+' / PokéAPI · '+(pixelAnimated?'animated':'still image'):'Official Pokémon artwork / PokéAPI · still image';
+ let credit=style==='animated'?source.name+' · PokéAPI sprite archive':style==='showdown'?'Pokémon Showdown battle animations · PokéAPI sprite archive':style==='cobblemon'?'Cobblemon community model sprite archive':style==='game'?gameCredit:style==='pixel'?activeForm().pixelCredit+' / PokéAPI · '+(pixelAnimated?'animated':'still image'):'Official Pokémon artwork / PokéAPI · still image';
  if(state.style==='auto'&&state.game==='auto')credit='Auto · '+credit;
- if(!lookup()){credit='No '+(style==='animated'?'animated HD sprite':style==='showdown'?'animated Showdown sprite':style==='cobblemon'?'Cobblemon sprite':style==='game'?'game-render':style==='pixel'?'pixel':'artwork')+' asset for this form. Choose Auto or another asset style.'}
+ if(!lookup()){credit='No '+(style==='animated'?'animated battle sprite':style==='showdown'?'animated Showdown sprite':style==='cobblemon'?'Cobblemon sprite':style==='game'?'game-render':style==='pixel'?'pixel':'artwork')+' asset for this form. Choose Auto or another asset style.'}
  $('asset-credit').textContent=credit;$('asset-credit').classList.toggle('warning',!lookup());
 }
 function choosePokemon(id){
@@ -262,11 +266,13 @@ function animationControls(){
 function disposeAnimation(layer){
  const r=layer.runtime;r.frame?.close();r.frame=null;
  try{r.decoder?.close()}catch(e){}
- r.decoder=null;r.bytes=null;r.mime=null;r.index=0;r.count=1;r.decoding=false;r.nextAt=0;r.animated=false;
+ r.decoder=null;r.bytes=null;r.mime=null;r.index=0;r.count=1;r.decoding=false;r.nextAt=0;r.animated=false;r.nativeAnimated=false;
 }
 async function decodeNextFrame(layer,token=layer.runtime.token){
  const r=layer.runtime;
- if(!r.decoder||r.decoding||!r.animated)return;
+ if(!r.animated||r.decoding)return;
+ if(r.nativeAnimated){r.nextAt=performance.now()+42;return}
+ if(!r.decoder)return;
  r.decoding=true;
  try{
   const frame=await r.decoder.decode({frameIndex:r.index,completeFramesOnly:true});
@@ -283,7 +289,7 @@ async function prepareAnimation(layer,source,token){
  const update=()=>{if(layer===activeLayer())animationControls();updateExportInfo(false)};
  if(!/\.(webp|gif)(\?|$)/i.test(source)){update();return}
  if(typeof ImageDecoder==='undefined'){
-  if(layer===activeLayer())$('asset-credit').textContent+=' · This browser supports still previews only';update();return;
+  r.nativeAnimated=true;r.animated=true;update();schedule();return;
  }
  try{
   const response=await fetch(source);if(!response.ok)return;
@@ -316,9 +322,10 @@ async function loadSprite(layer=activeLayer()){
  };
  image.onerror=()=>{
   if(token!==r.token||!layers.includes(layer))return;
-  if(s.style==='animated'){
-   const champion=activeForm(layer)?.games?.champions,key=keyFor(s.shiny,s.view,s.gender).replace('_default_female','_female');
-   if(champion?.[key]===source){failedAnimatedSources.add(source);if(layer===activeLayer())updateAvailability();loadSprite(layer);return}
+  if(s.style==='animated'||s.style==='showdown'||(s.style==='auto'&&assetStyle(layer)==='animated')){
+   failedAnimatedSources.add(source);
+   const next=getSource(layer);
+   if(next&&next!==source){if(layer===activeLayer())updateAvailability();loadSprite(layer);return}
   }
   if(['auto','game'].includes(s.style)&&s.game==='auto'){
    failedAutoSources.add(sourcePrimary);
@@ -584,6 +591,7 @@ function saveBlob(blob,extension){
 async function encodeGif(job){
  $('export-progress').hidden=false;exportProgress(0,1,'Preparing maximum-quality GIF…');
  await waitForExport(Promise.all(layers.map(layer=>layer.runtime.animationTask)),job);assertExport(job);
+ if(animatedLayers().some(layer=>layer.runtime.nativeAnimated&&!layer.runtime.bytes))throw Error('This browser can preview the animation, but animated GIF export needs ImageDecoder support. Use Chrome or Edge for animated exports.');
  const response=await fetch('gif-worker.js',{signal:job.abort.signal});
  if(!response.ok)throw Error('The GIF encoder could not load. Please try again.');
  const workerCode=await response.text();assertExport(job);
