@@ -55,23 +55,25 @@ function showdownAssetSet(layer=activeLayer()){
   back_shiny_female:base+'back/shiny/female/'+id+'.gif'
  };
 }
+function animatedAssetCandidate(layer,f){
+ const champions=f.games?.champions||{},showdown=showdownAssetSet(layer);
+ const set={...showdown,...Object.fromEntries(Object.entries(champions).filter(([key,url])=>typeof url==='string'&&!failedAnimatedSources.has(url)))};
+ const hasChampions=!!champions.front_default&&!failedAnimatedSources.has(champions.front_default);
+ return set.front_default?{style:'animated',key:hasChampions?'champions':'showdown',name:hasChampions?'Pokémon Champions HD animated sprites':'Pokémon Showdown animated sprites',set}:null;
+}
 function assetCandidates(layer=activeLayer()){
  const f=activeForm(layer);if(!f)return[];const s=layer.settings;
- if(s.style==='animated'){
-  const champions=f.games?.champions||{},showdown=showdownAssetSet(layer);
-  const set={...showdown,...Object.fromEntries(Object.entries(champions).filter(([key,url])=>typeof url==='string'&&!failedAnimatedSources.has(url)))};
-  const hasChampions=!!champions.front_default&&!failedAnimatedSources.has(champions.front_default);
-  return set.front_default?[{style:'animated',key:hasChampions?'champions':'showdown',name:hasChampions?'Pokémon Champions HD animated sprites':'Pokémon Showdown animated sprites',set}]:[];
- }
+ if(s.style==='animated'){const candidate=animatedAssetCandidate(layer,f);return candidate?[candidate]:[];}
  if(s.style==='showdown'){const set=showdownAssetSet(layer);return set.front_default?[{style:'showdown',key:'showdown',name:'Pokémon Showdown animated sprites',set}]:[];}
  if(s.style==='cobblemon'){const set=cobblemonAssetSet(layer);return set.front_default?[{style:'cobblemon',key:'cobblemon',name:'Cobblemon model sprites',set}]:[];}
- const games=availableGames(layer).filter(game=>s.game==='auto'||s.game===game.id).map(game=>({style:'game',key:game.id,name:game.name,set:f.games[game.id]}));
+ const games=availableGames(layer).filter(game=>s.game==='auto'||game.id===s.game).map(game=>({style:'game',key:game.id,name:game.name,set:f.games[game.id]}));
  const art={style:'art',key:'art',set:f.art||{}};
  const pixel={style:'pixel',key:'pixel',set:{...f.classic,...Object.fromEntries(Object.entries(f.pixel||{}).filter(([k,v])=>typeof v==='string'&&v))}};
  if(s.style==='game'||(s.style==='auto'&&s.game!=='auto'))return games;
  if(s.style==='art')return[art];
  if(s.style==='pixel')return[pixel];
- return [...games,art,pixel];
+ const animated=s.style==='auto'&&s.game==='auto'?animatedAssetCandidate(layer,f):null;
+ return [...(animated?[animated]:[]),...games,art,pixel];
 }
 function resolvedAsset(layer=activeLayer()){
  const s=layer?.settings||spriteDefaults,candidates=assetCandidates(layer).filter(c=>c.set.front_default);
