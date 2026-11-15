@@ -22,7 +22,7 @@ function makeLayer(settings={}){
 }
 function sceneReady(){return layers.every(layer=>layer.runtime.ready)}
 function animatedLayers(){return layers.filter(layer=>layer.settings.animate&&layer.runtime.animated)}
-const failedAutoSources=new Set();
+const failedAutoSources=new Set(),failedAnimatedSources=new Set();
 function icons(){window.lucide?.createIcons()}
 function tell(text){$('notice').textContent=text;$('notice').classList.add('visible');clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>$('notice').classList.remove('visible'),3200)}
 function activeForm(layer=activeLayer()){return layer?.settings.pokemon?.forms[layer.settings.form]}
@@ -57,6 +57,12 @@ function showdownAssetSet(layer=activeLayer()){
 }
 function assetCandidates(layer=activeLayer()){
  const f=activeForm(layer);if(!f)return[];const s=layer.settings;
+ if(s.style==='animated'){
+  const champions=f.games?.champions||{},showdown=showdownAssetSet(layer);
+  const set={...showdown,...Object.fromEntries(Object.entries(champions).filter(([key,url])=>typeof url==='string'&&!failedAnimatedSources.has(url)))};
+  const hasChampions=!!champions.front_default&&!failedAnimatedSources.has(champions.front_default);
+  return set.front_default?[{style:'animated',key:hasChampions?'champions':'showdown',name:hasChampions?'Pokémon Champions HD animated sprites':'Pokémon Showdown animated sprites',set}]:[];
+ }
  if(s.style==='showdown'){const set=showdownAssetSet(layer);return set.front_default?[{style:'showdown',key:'showdown',name:'Pokémon Showdown animated sprites',set}]:[];}
  if(s.style==='cobblemon'){const set=cobblemonAssetSet(layer);return set.front_default?[{style:'cobblemon',key:'cobblemon',name:'Cobblemon model sprites',set}]:[];}
  const games=availableGames(layer).filter(game=>s.game==='auto'||s.game===game.id).map(game=>({style:'game',key:game.id,name:game.name,set:f.games[game.id]}));
@@ -144,9 +150,9 @@ function updateAvailability(){
  const pixelAnimated=style==='pixel'&&!!activeForm().pixel.animated?.[keyFor().replace('_default_female','_female')];
  const source=resolvedAsset();
  const gameCredit=source.key==='sword-shield'?'Sword & Shield · game-model renders by FallenDeity / PokéAPI':source.key==='home'?'Pokémon HOME · archived render / PokéAPI':source.name+' · archived game-model render / PokéAPI';
- let credit=style==='showdown'?'Pokémon Showdown battle animations · PokéAPI sprite archive':style==='cobblemon'?'Cobblemon community model sprite archive':style==='game'?gameCredit:style==='pixel'?activeForm().pixelCredit+' / PokéAPI · '+(pixelAnimated?'animated':'still image'):'Official Pokémon artwork / PokéAPI · still image';
+ let credit=style==='animated'?(source.key==='champions'?'Pokémon Champions · 512px animated WebP sprites / PokéAPI':'Pokémon Showdown animated battle sprites · PokéAPI archive'):style==='showdown'?'Pokémon Showdown battle animations · PokéAPI sprite archive':style==='cobblemon'?'Cobblemon community model sprite archive':style==='game'?gameCredit:style==='pixel'?activeForm().pixelCredit+' / PokéAPI · '+(pixelAnimated?'animated':'still image'):'Official Pokémon artwork / PokéAPI · still image';
  if(state.style==='auto'&&state.game==='auto')credit='Auto · '+credit;
- if(!lookup()){credit='No '+(style==='showdown'?'animated Showdown sprite':style==='cobblemon'?'Cobblemon sprite':style==='game'?'game-render':style==='pixel'?'pixel':'artwork')+' asset for this form. Choose Auto or another asset style.'}
+ if(!lookup()){credit='No '+(style==='animated'?'animated HD sprite':style==='showdown'?'animated Showdown sprite':style==='cobblemon'?'Cobblemon sprite':style==='game'?'game-render':style==='pixel'?'pixel':'artwork')+' asset for this form. Choose Auto or another asset style.'}
  $('asset-credit').textContent=credit;$('asset-credit').classList.toggle('warning',!lookup());
 }
 function choosePokemon(id){
@@ -308,6 +314,10 @@ async function loadSprite(layer=activeLayer()){
  };
  image.onerror=()=>{
   if(token!==r.token||!layers.includes(layer))return;
+  if(s.style==='animated'){
+   const champion=activeForm(layer)?.games?.champions,key=keyFor(s.shiny,s.view,s.gender).replace('_default_female','_female');
+   if(champion?.[key]===source){failedAnimatedSources.add(source);if(layer===activeLayer())updateAvailability();loadSprite(layer);return}
+  }
   if(['auto','game'].includes(s.style)&&s.game==='auto'){
    failedAutoSources.add(sourcePrimary);
    if(getSource(layer)&&getSource(layer)!==source){if(layer===activeLayer())updateAvailability();loadSprite(layer);return}
