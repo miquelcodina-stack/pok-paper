@@ -18,7 +18,7 @@ const spriteDefaults=Object.fromEntries(spriteKeys.map(key=>[key,state[key]]));
 function activeLayer(){return layers.find(layer=>layer.id===selectedLayerId)||null}
 for(const key of spriteKeys)Object.defineProperty(state,key,{get:()=>activeLayer()?.settings[key]??spriteDefaults[key],set:value=>{if(activeLayer())activeLayer().settings[key]=value}});
 function makeLayer(settings={}){
- return {id:nextLayerId++,settings:{...spriteDefaults,...settings},runtime:{sprite:null,frozen:null,ready:false,failed:false,token:0,decoder:null,frame:null,index:0,count:1,nextAt:0,decoding:false,animated:false,nativeAnimated:false,bytes:null,mime:null,animationTask:Promise.resolve(),color:null,source:''}};
+ return {id:nextLayerId++,settings:{...spriteDefaults,...settings},runtime:{sprite:null,frozen:null,ready:false,failed:false,token:0,decoder:null,frame:null,index:0,count:1,nextAt:0,decoding:false,animated:false,nativeAnimated:false,procedural:false,bytes:null,mime:null,animationTask:Promise.resolve(),color:null,source:''}};
 }
 function sceneReady(){return layers.every(layer=>layer.runtime.ready)}
 function animatedLayers(){return layers.filter(layer=>layer.settings.animate&&layer.runtime.animated)}
@@ -285,11 +285,12 @@ function animationControls(){
 function disposeAnimation(layer){
  const r=layer.runtime;r.frame?.close();r.frame=null;
  try{r.decoder?.close()}catch(e){}
- r.decoder=null;r.bytes=null;r.mime=null;r.index=0;r.count=1;r.decoding=false;r.nextAt=0;r.animated=false;r.nativeAnimated=false;
+ r.decoder=null;r.bytes=null;r.mime=null;r.index=0;r.count=1;r.decoding=false;r.nextAt=0;r.animated=false;r.nativeAnimated=false;r.procedural=false;
 }
 async function decodeNextFrame(layer,token=layer.runtime.token){
  const r=layer.runtime;
  if(!r.animated||r.decoding)return;
+ if(r.procedural){r.nextAt=performance.now()+42;draw();return}
  if(r.nativeAnimated){r.nextAt=performance.now()+42;return}
  if(!r.decoder)return;
  r.decoding=true;
@@ -306,6 +307,10 @@ async function decodeNextFrame(layer,token=layer.runtime.token){
 async function prepareAnimation(layer,source,token){
  const r=layer.runtime;
  const update=()=>{if(layer===activeLayer())animationControls();updateExportInfo(false)};
+ if(assetStyle(layer)==='cobblemon'){
+  r.procedural=true;r.animated=true;r.count=24;r.nextAt=performance.now()+42;
+  update();schedule();return;
+ }
  if(!/\.(webp|gif)(\?|$)/i.test(source)){update();return}
  if(typeof ImageDecoder==='undefined'){
   r.nativeAnimated=true;r.animated=true;update();schedule();return;
@@ -401,8 +406,12 @@ function spriteBounds(w,h,image,layer=activeLayer()){
  const ratio=(image.displayWidth||image.width)/(image.displayHeight||image.height)||1;
  return {sz,iw:ratio>=1?sz:sz*ratio,ih:ratio>=1?sz/ratio:sz,cx:w*s.posX,cy:h*(s.posY??(phone?.43:.4))};
 }
-function renderWallpaper(g,w,h,overrides=null){
- g.clearRect(0,0,w,h);drawBackground(g,w,h);
+function renderWallpaper(g,w,h,overrides=null,animationTime=performance.now()){
+ const target=g;
+ if(!shaderCanvas)shaderCanvas=document.createElement('canvas');
+ if(shaderCanvas.width!==w||shaderCanvas.height!==h){shaderCanvas.width=w;shaderCanvas.height=h}
+ const scene=shaderCanvas.getContext('2d');scene.clearRect(0,0,w,h);g=scene;
+ drawScene(g,w,h);
  const phone=h/w>1.3,night=state.background==='midnight';
  const ink=night?'#f7edcf':'#575641';
  for(const layer of layers){
@@ -416,8 +425,13 @@ function renderWallpaper(g,w,h,overrides=null){
    const sy=cy+sz*.34,sw=sz*.35,sh=Math.max(4,h*.012);
    g.fillRect(cx-sw*.44,sy-sh,sw*.88,sh*2);g.fillRect(cx-sw*.5,sy-sh*.5,sw,sh);
   }
-  g.imageSmoothingEnabled=!['pixel','animated','showdown'].includes(assetStyle(layer));
-  g.drawImage(image,cx-iw/2,cy-ih/2,iw,ih);g.restore();
+  g.imageSmoothingEnabled=!['pixel','animated','showdown','cobblemon'].includes(assetStyle(layer));
+  if(r.procedural&&s.animate){
+   const phase=animationTime/1000*(Math.PI*2/2.35)+layer.id*.83;
+   const bob=Math.sin(phase)*ih*.018,tilt=Math.sin(phase*.52)*.026,squash=1+Math.sin(phase*2)*.012;
+   g.translate(cx,cy+bob);g.rotate(tilt);g.scale(1/squash,squash);g.drawImage(image,-iw/2,-ih/2,iw,ih);
+  }else g.drawImage(image,cx-iw/2,cy-ih/2,iw,ih);
+  g.restore();
  }else if(r.failed&&layer===activeLayer()){
   g.fillStyle=ink;g.textAlign='center';g.font=`500 ${Math.max(18,w*.035)}px "DM Sans", sans-serif`;
   g.fillText('This form is not in this asset collection.',w*.5,h*.45);
@@ -445,14 +459,12 @@ function renderWallpaper(g,w,h,overrides=null){
   const bx=w*.5,by=h*.94,s=w*.0018;
   g.fillStyle=night?'#d7d6ba88':'#85847077';g.fillRect(bx-s*6,by,s*3,s*3);g.fillRect(bx-s,by,s*3,s*3);g.fillRect(bx+s*4,by,s*3,s*3);
  }
+ applyWallpaperShader(target,shaderCanvas,w,h,animationTime);
 }
 let shaderCanvas=null;
-function drawBackground(g,w,h){
- if(!shaderCanvas)shaderCanvas=document.createElement('canvas');
- if(shaderCanvas.width!==w||shaderCanvas.height!==h){shaderCanvas.width=w;shaderCanvas.height=h}
- const bg=shaderCanvas.getContext('2d');bg.clearRect(0,0,w,h);drawScene(bg,w,h);
+function applyWallpaperShader(g,source,w,h,animationTime=performance.now()){
  const amount=state.shaderStrength/100,offset=Math.max(1,Math.round(Math.min(w,h)*.004*amount));
- g.save();g.drawImage(shaderCanvas,0,0,w,h);
+ g.save();g.drawImage(source,0,0,w,h);
  if(state.shader==='glow'&&amount>0){
   g.save();g.globalCompositeOperation='screen';g.globalAlpha=.16+.28*amount;g.filter='blur('+Math.max(2,Math.min(w,h)*.035*amount)+'px)';g.drawImage(shaderCanvas,0,0,w,h);g.restore();
  }else if(state.shader==='dream'&&amount>0){
@@ -464,6 +476,11 @@ function drawBackground(g,w,h){
  }else if(state.shader==='aurora'&&amount>0){
   g.globalCompositeOperation='screen';g.globalAlpha=.12+.2*amount;
   for(let i=0;i<3;i++){const x=w*(.18+i*.32),y=h*(.2+(i%2)*.25),r=Math.min(w,h)*(.28+.1*amount);const glow=g.createRadialGradient(x,y,0,x,y,r);glow.addColorStop(0,['#83e5c5','#9c9bff','#f3a8d2'][i]);glow.addColorStop(1,'transparent');g.fillStyle=glow;g.fillRect(0,0,w,h)}
+ }else if(state.shader==='vhs'&&amount>0){
+  g.globalCompositeOperation='screen';g.globalAlpha=.16*amount;g.drawImage(source,-offset*.8,0,w,h);g.globalCompositeOperation='multiply';g.globalAlpha=.12*amount;g.fillStyle='#202040';g.fillRect(0,0,w,h);
+  const bandY=(Math.sin(animationTime/430)*.5+.5)*h;g.globalCompositeOperation='screen';g.globalAlpha=.22*amount;g.fillStyle='#f4e8ff';g.fillRect(0,bandY,w,Math.max(2,h*.004));
+ }else if(state.shader==='neon'&&amount>0){
+  g.save();g.globalCompositeOperation='screen';g.globalAlpha=.24*amount;g.filter='saturate(1.8) contrast(1.12)';g.drawImage(source,0,0,w,h);g.filter='blur('+Math.max(2,Math.min(w,h)*.018*amount)+'px)';g.globalAlpha=.18*amount;g.drawImage(source,0,0,w,h);g.restore();
  }
  g.restore();
 }
@@ -642,15 +659,17 @@ async function encodeGif(job){
    const first=await waitForExport(d.decode({frameIndex:0,completeFramesOnly:true}),job);
    trackers.push({layer,decoder:d,durations,period:durations.reduce((a,b)=>a+b,0),index:0,next:durations[0],image:first.image});
   }
-  const duration=trackers.length?Math.max(...trackers.map(t=>t.period)):100;
-  // Merge source frame boundaries instead of resampling to a fixed FPS.
-  let time=0,index=0;const events=[0];
+  const proceduralLayers=layers.filter(layer=>layer.settings.animate&&layer.runtime.procedural);
+  const duration=Math.max(trackers.length?Math.max(...trackers.map(t=>t.period)):0,proceduralLayers.length?2000:0)||100;
+  // Merge source frame boundaries and sample procedural Cobblemon idle motion at 10 FPS.
+  let time=0,index=0,proceduralNext=100;const events=[0];
   for(const tracker of trackers){let t=0,i=0;while(t<duration-.001){t+=tracker.durations[i++%tracker.durations.length];if(t<duration-.001)events.push(t)}}
-  total=trackers.length?new Set(events.map(t=>Math.round(t*1000))).size:1;
+  if(proceduralLayers.length)for(let t=100;t<duration;t+=100)events.push(t);
+  total=new Set(events.map(t=>Math.round(t*1000))).size;
   while(time<duration-.001){
     assertExport(job);
-    const next=Math.min(duration,...trackers.map(t=>t.next));
-    renderWallpaper(g,out.width,out.height,new Map(trackers.map(t=>[t.layer.id,t.image])));
+    const next=Math.min(duration,...trackers.map(t=>t.next),...(proceduralLayers.length?[proceduralNext]:[]));
+    renderWallpaper(g,out.width,out.height,new Map(trackers.map(t=>[t.layer.id,t.image])),time);
     const rgba=g.getImageData(0,0,out.width,out.height).data;
     const target=Math.round(next/10)*10,delay=target-encodedDuration;
     if(delay>0){
@@ -660,6 +679,7 @@ async function encodeGif(job){
      exportProgress(++index,total,`Encoded ${index} scene frames`);
     }
     time=next;
+    if(proceduralLayers.length&&proceduralNext<=time+.001)proceduralNext+=100;
     if(time<duration-.001)for(const tracker of trackers)if(tracker.next<=time+.001){
      assertExport(job);tracker.image.close();tracker.image=null;
      tracker.index=(tracker.index+1)%tracker.durations.length;
