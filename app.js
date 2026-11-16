@@ -156,7 +156,7 @@ function updateAvailability(){
  $('game-source-row').hidden=!['auto','game'].includes(state.style);
  $('game-source').disabled=games.length===0;
  const style=assetStyle();
- if(style==='showdown')state.gender='default';
+ if(style==='showdown'||style==='animated')state.gender='default';
  if(style==='art'||style==='cobblemon'){state.view='front';state.gender='default'}
  const available=(view,gender,shiny)=>!!lookup(shiny,view,gender,activeLayer());
  if(!available(state.view,state.gender,state.shiny)&&available('front','default',state.shiny)){state.view='front';state.gender='default'}
@@ -175,7 +175,7 @@ function updateAvailability(){
  const currentKey=keyFor().replace('_default_female','_female');
  const source=assetCandidates().find(candidate=>candidate.set[currentKey]&&!failedAnimatedSources.has(candidate.set[currentKey]))||resolvedAsset();
  const gameCredit=source.key==='sword-shield'?'Sword & Shield · game-model renders by FallenDeity / PokéAPI':source.key==='home'?'Pokémon HOME · archived render / PokéAPI':source.name+' · archived game-model render / PokéAPI';
- let credit=style==='animated'?source.name+' · animated GIF':style==='showdown'?source.name+' · animated GIF':style==='cobblemon'?'Cobblemon community model sprite archive':style==='game'?gameCredit:style==='pixel'?activeForm().pixelCredit+' / PokéAPI · '+(pixelAnimated?'animated':'still image'):'Official Pokémon artwork / PokéAPI · still image';
+ let credit=style==='animated'?source.name+' · animated GIF':style==='showdown'?source.name+' · animated GIF':style==='cobblemon'?'Cobblemon high-quality render · animated idle motion':style==='game'?gameCredit:style==='pixel'?activeForm().pixelCredit+' / PokéAPI · '+(pixelAnimated?'animated':'still image'):'Official Pokémon artwork / PokéAPI · still image';
  if(state.style==='auto'&&state.game==='auto')credit='Auto · '+credit;
  if(!lookup()){credit='No '+(style==='animated'?'animated battle sprite':style==='showdown'?'animated Showdown sprite':style==='cobblemon'?'Cobblemon sprite':style==='game'?'game-render':style==='pixel'?'pixel':'artwork')+' asset for this form. Choose Auto or another asset style.'}
  $('asset-credit').textContent=credit;$('asset-credit').classList.toggle('warning',!lookup());
